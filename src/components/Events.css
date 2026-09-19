@@ -1,0 +1,32 @@
+/* ============================
+   EVENTS SECTION
+============================ */
+
+.events-section {
+  width: 100%;
+  padding: 0px 0;
+  text-align: center;
+}
+
+.events-title {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--color-primary);
+  margin-bottom: 15px;
+}
+
+.events-subtitle {
+  font-size: 18px;
+  color: var(--color-text-description);
+  margin-bottom: 40px;
+}
+
+/* Placeholder area */
+.events-placeholder {
+  margin-top: 40px;
+  padding: 40px;
+  border: 2px dashed var(--color-border);
+  border-radius: 12px;
+  color: var(--color-text-description);
+  font-size: 18px;
+}

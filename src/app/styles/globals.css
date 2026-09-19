@@ -1,0 +1,74 @@
+/* ============================
+   Global Color Variables
+============================ */
+:root {
+  --color-primary: #1a73e8;
+  --color-secondary: #185abc;
+
+  --color-background: #f7f7f7;
+  --color-navbar-bg: rgba(255, 255, 255, 0.7);
+
+  --color-text-main: #222222;
+  --color-text-description: #555555;
+  --color-text-hero: #ffffff;
+
+  --color-button-bg: #1a73e8;
+  --color-button-text: #ffffff;
+  --color-button-hover: #185abc;
+
+  --color-border: #dddddd;
+
+  /* ============================
+     Login Button Colors
+  ============================ */
+  --btn-login: #1a73e8;
+  --btn-login-text: #ffffff;
+  --btn-login-hover: #185abc;
+}
+
+/* ============================
+   Global Base Styles
+============================ */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background: var(--color-background);
+  color: var(--color-text-main);
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+section {
+  margin: 40px 0;
+}
+
+/* ============================
+   Landing Page Spacing Fix
+   (for fixed navbar)
+============================ */
+
+/* Hero section sits below navbar */
+.landing-hero {
+  padding-top: 70px; /* navbar height */
+}
+
+/* Main content spacing */
+.landing-container {
+  padding-top: 40px; /* breathing room */
+}
+
+
+/* ============================
+   Landing Page Horizontal Spacing
+============================ */
+
+
+.landing-container {
+  padding-left: 20px;
+  padding-right: 20px;
+}

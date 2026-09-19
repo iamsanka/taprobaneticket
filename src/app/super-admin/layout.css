@@ -1,0 +1,80 @@
+/* ============================
+   Super Admin Layout Wrapper
+============================ */
+.super-admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-background);
+
+  /* ⭐ Add top gap for both sidebar + content */
+  padding-top: 70px; /* increase this to 60px, 80px, etc */
+}
+
+/* ============================
+   Sidebar
+============================ */
+.sidebar {
+  width: 240px;
+  background: #ffffff;
+  border-right: 1px solid var(--color-border);
+  padding: 24px 20px;
+
+  /* ⭐ Sidebar height adjusted for top gap */
+  height: calc(100vh - 50px);
+
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-title {
+  font-size: 20px;
+  margin-bottom: 24px;
+  color: var(--color-text-main);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sidebar-nav a {
+  text-decoration: none;
+  font-size: 15px;
+  color: var(--color-text-main);
+  padding: 10px 12px;
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-nav a:hover {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.logout-btn {
+  margin-top: 30px;
+  padding: 10px 12px;
+  width: 100%;
+  background: var(--btn-login);
+  color: var(--btn-login-text);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: var(--btn-login-hover);
+}
+
+/* ============================
+   Main Content
+============================ */
+.content {
+  flex: 1;
+  padding: 32px;
+
+  /* ⭐ Content already pushed down by parent padding */
+  margin-top: 0;
+}

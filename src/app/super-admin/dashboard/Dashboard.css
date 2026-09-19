@@ -1,0 +1,93 @@
+/* ============================
+   Layout Container
+============================ */
+.sa-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-background);
+}
+
+/* ============================
+   Sidebar
+============================ */
+.sa-sidebar {
+  width: 240px;
+  background: #ffffff;
+  border-right: 1px solid var(--color-border);
+  padding: 24px 20px;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.sa-sidebar h2 {
+  font-size: 20px;
+  margin-bottom: 24px;
+  color: var(--color-text-main);
+}
+
+.sa-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sa-sidebar a {
+  text-decoration: none;
+  font-size: 15px;
+  color: var(--color-text-main);
+  padding: 10px 12px;
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sa-sidebar a:hover {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+/* ============================
+   Main Content
+============================ */
+.sa-main {
+  flex: 1;
+  padding: 32px;
+}
+
+/* Header */
+.sa-header h1 {
+  font-size: 28px;
+  margin-bottom: 28px;
+  color: var(--color-text-main);
+}
+
+/* ============================
+   Dashboard Grid
+============================ */
+.sa-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+}
+
+/* Cards */
+.sa-card {
+  background: #ffffff;
+  padding: 28px 20px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--color-text-main);
+  font-size: 18px;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sa-card:hover {
+  background: var(--color-primary);
+  color: #ffffff;
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}

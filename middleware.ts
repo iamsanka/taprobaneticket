@@ -34,7 +34,11 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
-    if (pathname.startsWith("/admin") && decoded.role !== "ADMIN") {
+    if (
+      pathname.startsWith("/admin") &&
+      decoded.role !== "ADMIN" &&
+      decoded.role !== "SUPER_ADMIN"
+    ) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
 

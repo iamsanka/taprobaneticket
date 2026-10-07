@@ -1,0 +1,204 @@
+/* ==========================================
+   All Orders page — search, sort, filters
+   ========================================== */
+
+/* ---- Status tabs ---- */
+
+.sa-filter-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0;
+}
+
+.sa-filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  margin-bottom: -1px;
+}
+
+.sa-filter-tab:hover {
+  color: var(--color-text-main);
+}
+
+.sa-filter-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.sa-filter-count {
+  display: inline-block;
+  padding: 1px 7px;
+  background: var(--color-surface-alt, #f3f6fa);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.sa-filter-tab.active .sa-filter-count {
+  background: #eef4fe;
+  color: var(--color-primary);
+}
+
+/* ---- Search + sort row ---- */
+
+.sa-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sa-search-wrap {
+  position: relative;
+  flex: 0 0 320px;      /* fixed 320px, no grow, no shrink */
+  width: 320px;
+  max-width: 100%;      /* allows shrinking on very small screens */
+}
+
+.sa-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.sa-search-input {
+  width: 100%;
+  padding: 11px 36px 11px 36px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box
+}
+
+.sa-search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+}
+
+.sa-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--color-text-muted);
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.sa-search-clear:hover {
+  color: var(--color-text-main);
+}
+
+.sa-sort-select {
+  padding: 11px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.sa-sort-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* ---- Method filter chips ---- */
+
+.sa-method-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.sa-method-chip {
+  padding: 7px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sa-method-chip:hover {
+  border-color: #bfd4ee;
+  color: var(--color-text-main);
+}
+
+.sa-method-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-light);
+}
+
+/* ---- Resend button in table ---- */
+
+.sa-resend-btn {
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1.5px solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sa-resend-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: var(--color-text-light);
+}
+
+.sa-resend-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---- Results count footer ---- */
+
+.sa-results-count {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: right;
+}

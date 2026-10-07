@@ -1,0 +1,728 @@
+/* ==========================================
+   Super Admin — Per-event report page
+   Uses globals.css tokens
+   ========================================== */
+
+.efin-page {
+  padding: 8px 4px;
+}
+
+/* ==========================================
+   Back link
+   ========================================== */
+
+.efin-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.efin-back:hover {
+  color: var(--color-primary);
+  background: rgba(26, 115, 232, 0.06);
+}
+
+/* ==========================================
+   Header
+   ========================================== */
+
+.efin-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.efin-eyebrow {
+  display: inline-block;
+  padding: 5px 12px;
+  margin-bottom: 12px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: rgba(26, 115, 232, 0.08);
+  border: 1px solid rgba(26, 115, 232, 0.2);
+  border-radius: 999px;
+}
+
+.efin-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  line-height: 1.15;
+  color: var(--color-text-main);
+  margin: 0 0 6px 0;
+}
+
+.efin-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.efin-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease,
+    transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.efin-refresh-btn:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+  border-color: #cddffa;
+  transform: translateY(-1px);
+}
+
+.efin-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==========================================
+   States
+   ========================================== */
+
+.efin-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.efin-state-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: efin-spin 0.8s linear infinite;
+  margin-bottom: 14px;
+}
+
+@keyframes efin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.efin-state-text {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.efin-error {
+  padding: 16px 20px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  color: #991b1b;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+/* ==========================================
+   Top KPI row — three headline cards
+   ========================================== */
+
+.efin-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .efin-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.efin-kpi {
+  position: relative;
+  padding: 22px 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.efin-kpi:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.efin-kpi::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-border);
+}
+
+.efin-kpi-primary::before {
+  background: var(--color-primary);
+}
+.efin-kpi-amber::before {
+  background: #d97706;
+}
+.efin-kpi-danger::before {
+  background: var(--color-danger);
+}
+.efin-kpi-success::before {
+  background: #16a34a;
+}
+
+.efin-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.efin-kpi-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: var(--color-text-muted);
+}
+
+.efin-kpi-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+}
+
+.efin-kpi-icon-primary {
+  background: rgba(26, 115, 232, 0.1);
+  color: var(--color-primary);
+}
+
+.efin-kpi-icon-amber {
+  background: rgba(217, 119, 6, 0.1);
+  color: #b45309;
+}
+
+.efin-kpi-icon-danger {
+  background: rgba(229, 57, 53, 0.1);
+  color: var(--color-danger);
+}
+
+.efin-kpi-icon-success {
+  background: rgba(22, 163, 74, 0.1);
+  color: #15803d;
+}
+
+.efin-kpi-value {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  line-height: 1.1;
+  color: var(--color-text-main);
+  margin-bottom: 8px;
+}
+
+.efin-kpi-primary .efin-kpi-value {
+  color: var(--color-secondary);
+}
+.efin-kpi-amber .efin-kpi-value {
+  color: #b45309;
+}
+.efin-kpi-danger .efin-kpi-value {
+  color: var(--color-danger);
+}
+.efin-kpi-success .efin-kpi-value {
+  color: #15803d;
+}
+
+.efin-kpi-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* ==========================================
+   Second row — five detail tiles
+   ========================================== */
+
+.efin-tiles-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1100px) {
+  .efin-tiles-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .efin-tiles-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .efin-tiles-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.efin-tile {
+  padding: 16px 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+.efin-tile-success {
+  background: rgba(22, 163, 74, 0.05);
+  border-color: rgba(22, 163, 74, 0.18);
+}
+
+.efin-tile-danger {
+  background: rgba(229, 57, 53, 0.05);
+  border-color: rgba(229, 57, 53, 0.18);
+}
+
+.efin-tile-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+}
+
+.efin-tile-value {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+  color: var(--color-text-main);
+  word-break: break-word;
+}
+
+.efin-tile-success .efin-tile-value {
+  color: #15803d;
+}
+
+.efin-tile-danger .efin-tile-value {
+  color: var(--color-danger);
+}
+
+.efin-tile-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+/* ==========================================
+   Cards
+   ========================================== */
+
+.efin-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+}
+
+.efin-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.efin-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--color-text-muted);
+  margin: 0 0 4px 0;
+}
+
+.efin-card-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 4px 0 0 0;
+  line-height: 1.5;
+}
+
+.efin-card-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.efin-card-link:hover {
+  color: var(--color-secondary);
+  text-decoration: underline;
+}
+
+.efin-empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+  padding: 20px 0;
+  text-align: center;
+}
+
+/* ==========================================
+   Channel breakdown
+   ========================================== */
+
+.efin-channel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .efin-channel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.efin-channel {
+  padding: 18px 20px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.efin-channel:hover {
+  border-color: rgba(26, 115, 232, 0.35);
+}
+
+.efin-channel-card {
+  border-left: 4px solid var(--color-primary);
+}
+.efin-channel-epassi {
+  border-left: 4px solid #00c389;
+}
+.efin-channel-edenred {
+  border-left: 4px solid #e30613;
+}
+
+.efin-channel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.efin-channel-label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--color-text-main);
+}
+
+.efin-channel-orders {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.efin-channel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.efin-channel-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.efin-channel-row-label {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.efin-channel-row-value {
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.efin-channel-row-neg {
+  color: var(--color-danger);
+}
+
+.efin-channel-row-total {
+  padding-top: 8px;
+  margin-top: 4px;
+  border-top: 1px solid var(--color-border);
+}
+
+.efin-channel-row-total .efin-channel-row-label {
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.efin-channel-row-total .efin-channel-row-value {
+  font-size: 15px;
+  color: var(--color-secondary);
+}
+
+/* ==========================================
+   Tables
+   ========================================== */
+
+.efin-table-wrap {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.efin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.efin-table thead {
+  background: var(--color-surface-alt);
+}
+
+.efin-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.efin-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.efin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.efin-table tbody tr:hover {
+  background: #fafcff;
+}
+
+/* Right-aligned header wins over default */
+.efin-table th.efin-td-right,
+.efin-table td.efin-td-right {
+  text-align: right;
+}
+
+.efin-td-strong {
+  font-weight: 700;
+}
+
+.efin-td-muted {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.efin-td-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.efin-td-overdue {
+  color: var(--color-danger);
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.efin-overdue-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+/* ==========================================
+   Pills
+   ========================================== */
+
+.efin-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  line-height: 1.4;
+  background: #eef4fe;
+  color: var(--color-secondary);
+  border: 1px solid #cddffa;
+}
+
+/* Status pills override the default category styling */
+.efin-pill-status-expected {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.efin-pill-status-partial {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+.efin-pill-status-received,
+.efin-pill-status-paid {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.efin-pill-status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.efin-pill-status-quote {
+  background: #f3f4f6;
+  color: #6b7280;
+  border-color: #e5e7eb;
+}
+
+.efin-pill-status-booked {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+/* ==========================================
+   Responsive
+   ========================================== */
+
+@media (max-width: 640px) {
+  .efin-title {
+    font-size: 22px;
+  }
+
+  .efin-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .efin-refresh-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .efin-kpi {
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .efin-kpi-value {
+    font-size: 24px;
+  }
+
+  .efin-card {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .efin-table-wrap {
+    overflow-x: auto;
+  }
+
+  .efin-table {
+    min-width: 720px;
+  }
+}

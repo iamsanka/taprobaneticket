@@ -18,12 +18,8 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // ⭐ required for session cookie
-        body: JSON.stringify({
-          email,
-          password,
-          // csrf: process.env.NEXT_PUBLIC_CSRF_TOKEN, // if you enable CSRF
-        }),
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
       });
 
       if (!res.ok) {
@@ -33,8 +29,36 @@ export default function LoginPage() {
         return;
       }
 
-      // On success, go to dashboard
-      window.location.href = "/super-admin/dashboard";
+      // Ask the server who we are so we can redirect by role
+      const meRes = await fetch("/api/auth/me", {
+        credentials: "include",
+      });
+
+      if (!meRes.ok) {
+        // Fallback if /me is unavailable for some reason
+        window.location.href = "/super-admin/dashboard";
+        return;
+      }
+
+      const me = await meRes.json();
+
+      switch (me.role) {
+        case "SUPER_ADMIN":
+          window.location.href = "/super-admin/dashboard";
+          break;
+        case "ADMIN":
+          window.location.href = "/admin/dashboard";
+          break;
+        case "AUDIT":
+          window.location.href = "/audit/dashboard";
+          break;
+        case "STAFF":
+          window.location.href = "/staff/dashboard";
+          break;
+        default:
+          window.location.href = "/";
+          break;
+      }
     } catch (err) {
       console.error("LOGIN ERROR:", err);
       setError("Something went wrong. Please try again.");
@@ -47,11 +71,7 @@ export default function LoginPage() {
       <div className="login-wrapper">
         <h1>Admin Login</h1>
 
-        {error && (
-          <div className="login-error">
-            {error}
-          </div>
-        )}
+        {error && <div className="login-error">{error}</div>}
 
         <form onSubmit={handleSubmit} autoComplete="off">
           <label>

@@ -1,0 +1,55 @@
+/* ==========================================
+   Super Admin — Expenses page additions
+   Shared primitives come from ../income/Income.css
+   ========================================== */
+
+/* ==========================================
+   Search input styled like a select
+   ========================================== */
+
+.fin-select-input {
+  cursor: text;
+}
+
+.fin-select-input::placeholder {
+  color: #9aa3b2;
+}
+
+.fin-select-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+}
+
+/* ==========================================
+   Overdue date cell
+   ========================================== */
+
+.fin-td-overdue {
+  color: var(--color-danger);
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.fin-td-overdue-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+/* ==========================================
+   Wide modal (used by CreateExpenseModal)
+   ========================================== */
+
+.fin-modal-lg {
+  max-width: 680px;
+}

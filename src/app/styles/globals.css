@@ -1,29 +1,92 @@
 /* ============================
-   Global Color Variables
+   Global Color System
+   ----------------
+   Core palette derived from the Taprobane logo.
+   Every legacy variable is preserved as an alias below,
+   so existing stylesheets keep working without changes.
 ============================ */
+
 :root {
-  --color-primary: #1a73e8;
-  --color-secondary: #185abc;
+  /* ============================
+     CORE PALETTE
+     Extracted from the Taprobane logo
+  ============================ */
 
-  --color-background: #f7f7f7;
-  --color-navbar-bg: rgba(255, 255, 255, 0.7);
+  /* Brand Blue — deeper shade from the logo for readability on white */
+  --color-primary: #2a8bc4;
 
-  --color-text-main: #222222;
-  --color-text-description: #555555;
-  --color-text-hero: #ffffff;
+  /* Sky blue from the logo — use for accents, badges, dark backgrounds */
+  --color-primary-light: #4fb6e0;
 
-  --color-button-bg: #1a73e8;
-  --color-button-text: #ffffff;
-  --color-button-hover: #185abc;
+  /* Coral from the logo — warm secondary accent */
+  --color-secondary: #e07a56;
 
-  --color-border: #dddddd;
+  /* Gold from the logo (already matched) */
+  --color-accent: #d4af37;
+
+  /* Cream from the logo */
+  --color-cream: #eddfa9;
+
+  /* Danger red */
+  --color-danger: #e53935;
+
+  /* Surface */
+  --color-surface: #ffffff;
+  --color-surface-alt: #f5f9fc;
+
+  /* Text */
+  --color-text-main: #1a1f26;
+  --color-text-muted: #5a6470;
 
   /* ============================
-     Login Button Colors
+     SUPPORT TOKENS (derived)
   ============================ */
-  --btn-login: #1a73e8;
-  --btn-login-text: #ffffff;
-  --btn-login-hover: #185abc;
+
+  /* Neutrals */
+  --color-text-light: #ffffff;
+  --color-border: #e0e6ec;
+  --color-shadow: rgba(15, 23, 42, 0.06);
+
+  /* Interactive states */
+  --color-primary-hover: #1f76a8;
+  --color-secondary-hover: #c96641;
+  --color-danger-hover: #c62828;
+  --color-accent-dark: #b8952e;
+
+  /* Optional brand gradient (coral → gold → sky blue, matching the logo) */
+  --gradient-brand: linear-gradient(
+    90deg,
+    #e07a56 0%,
+    #d4af37 50%,
+    #4fb6e0 100%
+  );
+
+  /* Button tokens (aliases) */
+  --color-button-bg: var(--color-primary);
+  --color-button-text: var(--color-text-light);
+  --color-button-hover: var(--color-primary-hover);
+
+  /* Navbar tokens (aliases) */
+  --color-background: #f5f9fc;
+  --color-navbar-bg: rgba(255, 255, 255, 0.85);
+  --color-navbar-bg-solid: var(--color-surface);
+  --color-navbar-bg-glass: rgba(255, 255, 255, 0.92);
+  --color-navbar-border: rgba(15, 23, 42, 0.08);
+  --color-navbar-shadow: rgba(15, 23, 42, 0.08);
+
+  /* Legacy text aliases */
+  --color-text-description: var(--color-text-muted);
+  --color-text-hero: var(--color-text-light);
+
+  /* Legacy button aliases */
+  --btn-login: var(--color-primary);
+  --btn-login-text: var(--color-text-light);
+  --btn-login-hover: var(--color-primary-hover);
+
+  /* Legacy semantic aliases */
+  --color-gold: var(--color-accent);
+  --color-logout: var(--color-danger);
+  --color-logout-hover: var(--color-danger-hover);
 }
 
 /* ============================
@@ -48,25 +111,15 @@ section {
 }
 
 /* ============================
-   Landing Page Spacing Fix
-   (for fixed navbar)
+   Landing Page Spacing
 ============================ */
-
-/* Hero section sits below navbar */
-.landing-hero {
-  padding-top: 70px; /* navbar height */
+/* Hero section: navbar is position: fixed, and the Hero component
+   already has internal top padding to clear it. This section must
+   have NO extra top spacing, or a gap appears under the navbar. */
+section.landing-hero {
+  margin: 0;
+  padding: 0;
 }
-
-/* Main content spacing */
-.landing-container {
-  padding-top: 40px; /* breathing room */
-}
-
-
-/* ============================
-   Landing Page Horizontal Spacing
-============================ */
-
 
 .landing-container {
   padding-left: 20px;

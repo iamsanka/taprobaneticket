@@ -1,0 +1,381 @@
+/* ==========================================
+   Order Detail page
+   ========================================== */
+
+/* ---- Header ---- */
+
+.sa-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.sa-back-link {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  margin-bottom: 10px;
+  transition: color 0.15s ease;
+}
+
+.sa-back-link:hover {
+  color: var(--color-secondary);
+  text-decoration: underline;
+}
+
+.sa-detail-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sa-detail-title .sa-order-number {
+  font-size: 22px;
+}
+
+.sa-detail-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* ---- Action buttons ---- */
+
+.sa-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  font-family: inherit;
+}
+
+.sa-action-btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-light);
+}
+
+.sa-action-btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.sa-action-btn-primary:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ---- Danger button (Cancel Order) ---- */
+
+.sa-action-btn-danger {
+  background: var(--color-danger);
+  color: var(--color-text-light);
+}
+
+.sa-action-btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+  transform: translateY(-1px);
+}
+
+.sa-action-btn-danger:disabled {
+  background: #fca5a5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ---- Status row ---- */
+
+.sa-detail-status {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+/* ---- Detail grid ---- */
+
+.sa-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .sa-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Detail cards ---- */
+
+.sa-detail-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
+}
+
+.sa-detail-card-full {
+  grid-column: 1 / -1;
+}
+
+.sa-detail-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sa-detail-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  margin: 0 0 16px 0;
+}
+
+.sa-detail-card-header .sa-detail-card-title {
+  margin: 0;
+}
+
+/* ---- Definition list ---- */
+
+.sa-detail-dl {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+}
+
+.sa-detail-dl > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sa-detail-dl dt {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+}
+
+.sa-detail-dl dd {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-main);
+  font-weight: 500;
+}
+
+.sa-detail-dl dd a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.sa-detail-dl dd a:hover {
+  text-decoration: underline;
+}
+
+.sa-detail-muted {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ---- Payment summary ---- */
+
+.sa-summary-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.sa-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sa-summary-row:last-child {
+  border-bottom: none;
+}
+
+.sa-summary-row.emphasized {
+  padding-top: 16px;
+  border-top: 2px solid var(--color-border);
+  border-bottom: none;
+}
+
+.sa-summary-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.sa-summary-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.sa-summary-row.emphasized .sa-summary-label {
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.sa-summary-row.emphasized .sa-summary-value {
+  font-size: 18px;
+  color: var(--color-secondary);
+}
+
+/* ---- Tickets list ---- */
+
+.sa-ticket-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sa-ticket-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--color-surface-alt);
+  border-radius: 10px;
+  border-left: 3px solid var(--color-primary);
+  transition: background 0.15s ease;
+}
+
+.sa-ticket-row.scanned {
+  border-left-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.sa-ticket-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sa-ticket-type {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.sa-ticket-number {
+  font-size: 12px;
+}
+
+.sa-ticket-right {
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.sa-scan-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.sa-scan-badge-valid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sa-scan-badge-used {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+/* ---- Timeline ---- */
+
+.sa-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 4px;
+}
+
+.sa-timeline-row {
+  display: flex;
+  gap: 14px;
+  padding: 10px 0;
+  position: relative;
+}
+
+.sa-timeline-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d1d5db;
+  margin-top: 5px;
+  position: relative;
+}
+
+.sa-timeline-row.done .sa-timeline-dot {
+  background: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.15);
+}
+
+.sa-timeline-row:not(:last-child) .sa-timeline-dot::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 42px;
+  background: var(--color-border);
+}
+
+.sa-timeline-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sa-timeline-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin-bottom: 2px;
+}
+
+.sa-timeline-value {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.sa-timeline-row.done .sa-timeline-value {
+  color: var(--color-text-main);
+}

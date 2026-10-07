@@ -1,0 +1,689 @@
+/* ==========================================
+   Super Admin — Users page
+   Uses globals.css brand tokens
+   ========================================== */
+
+.sa-users {
+  padding: 8px 4px;
+}
+
+/* ---- Header ---- */
+
+.sa-users-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.sa-users-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.3px;
+}
+
+.sa-users-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.sa-users-create-btn {
+  display: inline-block;
+  padding: 11px 20px;
+  background: var(--color-primary);
+  color: var(--color-text-light);
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.sa-users-create-btn:hover {
+  background: var(--color-primary-hover, var(--color-secondary));
+  transform: translateY(-1px);
+}
+
+/* ---- Empty / Error states ---- */
+
+.sa-users-empty,
+.sa-users-error {
+  padding: 40px 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--color-text-muted);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.sa-users-error {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+/* ==========================================
+   Search + filter controls (shared pattern)
+   ========================================== */
+
+.sa-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sa-search-wrap {
+  position: relative;
+  flex: 0 0 320px;
+  width: 320px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.sa-search-wrap * {
+  box-sizing: border-box;
+}
+
+.sa-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.sa-search-input {
+  width: 100%;
+  padding: 11px 36px 11px 36px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.sa-search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+}
+
+.sa-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--color-text-muted);
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.sa-search-clear:hover {
+  color: var(--color-text-main);
+}
+
+/* ---- Filter tabs ---- */
+
+.sa-filter-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0;
+}
+
+.sa-filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  margin-bottom: -1px;
+}
+
+.sa-filter-tab:hover {
+  color: var(--color-text-main);
+}
+
+.sa-filter-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.sa-filter-count {
+  display: inline-block;
+  padding: 1px 7px;
+  background: var(--color-surface-alt, #f3f6fa);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.sa-filter-tab.active .sa-filter-count {
+  background: #eef4fe;
+  color: var(--color-primary);
+}
+
+/* ==========================================
+   Users table
+   ========================================== */
+
+.sa-users-table-wrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.sa-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.sa-users-table thead {
+  background: var(--color-surface-alt, #f3f6fa);
+}
+
+.sa-users-table th {
+  text-align: left;
+  padding: 14px 18px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sa-users-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.sa-users-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.sa-users-table tbody tr:hover {
+  background: #fafcff;
+}
+
+.sa-td-right {
+  text-align: right;
+}
+
+.sa-user-email {
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.sa-user-date {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.sa-user-locked {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ---- Actions ---- */
+
+.sa-user-actions {
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.sa-user-action-btn {
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1.5px solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sa-user-action-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: var(--color-text-light);
+}
+
+.sa-user-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sa-user-action-btn.danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.sa-user-action-btn.danger:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: var(--color-text-light);
+}
+
+.sa-user-action-btn.success {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+.sa-user-action-btn.success:hover:not(:disabled) {
+  background: #16a34a;
+  color: var(--color-text-light);
+}
+
+/* ==========================================
+   Role + Status pills
+   ========================================== */
+
+.sa-role-pill {
+  display: inline-block;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.sa-role-super {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sa-role-admin {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.sa-role-staff {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sa-role-audit {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.sa-role-customer {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.sa-status-pill {
+  display: inline-block;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.sa-status-pill.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sa-status-pill.inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* ==========================================
+   Results count footer
+   ========================================== */
+
+.sa-results-count {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+/* ==========================================
+   Mobile
+   ========================================== */
+
+@media (max-width: 768px) {
+  .sa-users-table-wrap {
+    overflow-x: auto;
+  }
+
+  .sa-users-table {
+    min-width: 720px;
+  }
+
+  .sa-users-header {
+    align-items: flex-start;
+  }
+}
+
+/* ==========================================
+   User create/edit form
+   ========================================== */
+
+.sa-user-form-header {
+  margin-bottom: 24px;
+}
+
+.sa-back-link {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  margin-bottom: 10px;
+  transition: color 0.15s ease;
+}
+
+.sa-back-link:hover {
+  color: var(--color-secondary);
+  text-decoration: underline;
+}
+
+.sa-user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+}
+
+.sa-user-form-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.sa-user-form-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  margin: 0 0 20px 0;
+}
+
+/* ---- Form fields ---- */
+
+.sa-form-field {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.sa-form-field:last-child {
+  margin-bottom: 0;
+}
+
+.sa-form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin-bottom: 8px;
+}
+
+.sa-form-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.sa-form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+}
+
+.sa-form-input-mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}
+
+.sa-form-input:disabled {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.sa-form-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ---- Role picker ---- */
+
+.sa-role-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sa-role-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.sa-role-option:hover {
+  border-color: #bfd4ee;
+  background: #fafcff;
+}
+
+.sa-role-option.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+  background: #f5f9ff;
+}
+
+.sa-role-radio {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease;
+  margin-top: 2px;
+}
+
+.sa-role-option.selected .sa-role-radio {
+  border-color: var(--color-primary);
+}
+
+.sa-role-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.sa-role-option-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.sa-role-option-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin-bottom: 3px;
+}
+
+.sa-role-option-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ---- Form actions ---- */
+
+.sa-user-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.sa-user-form-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: background 0.15s ease, transform 0.15s ease,
+    border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sa-user-form-btn-cancel {
+  background: transparent;
+  color: var(--color-text-main);
+  border: 1.5px solid var(--color-border);
+}
+
+.sa-user-form-btn-cancel:hover {
+  background: var(--color-surface-alt);
+  border-color: #cddffa;
+}
+
+.sa-user-form-btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-light);
+}
+
+.sa-user-form-btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover, var(--color-secondary));
+  transform: translateY(-1px);
+}
+
+.sa-user-form-btn-primary:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ---- Danger button (used on edit page) ---- */
+
+.sa-user-form-btn-danger {
+  background: transparent;
+  color: var(--color-danger);
+  border: 1.5px solid var(--color-danger);
+}
+
+.sa-user-form-btn-danger:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: var(--color-text-light);
+}
+
+.sa-user-form-btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---- Warning banner (used on edit page) ---- */
+
+.sa-user-warning {
+  padding: 14px 18px;
+  background: #fef3c7;
+  border-left: 3px solid #d97706;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+/* ---- Info banner (used on edit page) ---- */
+
+.sa-user-info {
+  padding: 14px 18px;
+  background: #eef4fe;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-secondary);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}

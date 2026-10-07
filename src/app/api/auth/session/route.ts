@@ -1,4 +1,3 @@
-// src/app/api/auth/session/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
@@ -15,6 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       loggedIn: true,
       role: decoded.role,
+      name: decoded.name || "My Profile",
     });
   } catch {
     return NextResponse.json({ loggedIn: false });

@@ -1,0 +1,534 @@
+/* ==========================================
+   Super Admin — Create Ticket Category
+   Uses globals.css tokens
+   ========================================== */
+
+.cat-page {
+  padding: 8px 4px 100px 4px;
+}
+
+/* ==========================================
+   Back link
+   ========================================== */
+
+.cat-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.cat-back:hover {
+  color: var(--color-primary);
+  background: rgba(26, 115, 232, 0.06);
+}
+
+/* ==========================================
+   Header
+   ========================================== */
+
+.cat-header {
+  margin-bottom: 28px;
+}
+
+.cat-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--color-text-main);
+  margin: 0 0 6px 0;
+}
+
+.cat-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 640px;
+  line-height: 1.55;
+}
+
+/* ==========================================
+   Layout
+   ========================================== */
+
+.cat-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.cat-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .cat-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .cat-aside {
+    order: -1;
+  }
+}
+
+/* ==========================================
+   Card
+   ========================================== */
+
+.cat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+.cat-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cat-step {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-primary);
+  background: rgba(26, 115, 232, 0.1);
+  border: 1px solid rgba(26, 115, 232, 0.2);
+}
+
+.cat-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  color: var(--color-text-main);
+  margin: 2px 0 4px 0;
+}
+
+.cat-card-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ==========================================
+   Fields
+   ========================================== */
+
+.cat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.cat-required {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.cat-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text-main);
+  background: var(--color-surface);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cat-input::placeholder {
+  color: #9aa3b2;
+}
+
+.cat-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+}
+
+.cat-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ==========================================
+   Error banner
+   ========================================== */
+
+.cat-error {
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+/* ==========================================
+   Ticket type rows
+   ========================================== */
+
+.cat-types {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cat-type-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cat-type-index {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+}
+
+.cat-type-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.cat-type-remove {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.cat-type-remove:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: var(--color-danger);
+}
+
+.cat-type-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ==========================================
+   Add type button
+   ========================================== */
+
+.cat-add-type-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  background: transparent;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 10px;
+  color: var(--color-primary);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cat-add-type-btn:hover:not(:disabled) {
+  background: rgba(26, 115, 232, 0.05);
+  border-color: var(--color-primary);
+  border-style: solid;
+}
+
+.cat-add-type-btn:disabled {
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==========================================
+   Preview column
+   ========================================== */
+
+.cat-aside {
+  position: sticky;
+  top: 96px;
+}
+
+.cat-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cat-preview-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: var(--color-text-muted);
+}
+
+.cat-preview-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.cat-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-secondary) 100%
+  );
+  color: #ffffff;
+}
+
+.cat-preview-cat-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.1px;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.cat-preview-count {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cat-preview-body {
+  padding: 16px 18px;
+}
+
+.cat-preview-empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.55;
+  font-style: italic;
+}
+
+.cat-preview-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cat-preview-type {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  word-break: break-word;
+}
+
+.cat-preview-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.cat-preview-note {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+  padding: 0 4px;
+}
+
+/* ==========================================
+   Sticky action bar
+   ========================================== */
+
+.cat-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 12px 24px calc(12px + env(safe-area-inset-bottom, 0px)) 24px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.06);
+  margin-left: 240px;
+  transition: margin-left 0.25s ease;
+}
+
+.super-admin-layout.collapsed .cat-actions {
+  margin-left: 68px;
+}
+
+@media (max-width: 900px) {
+  .cat-actions {
+    margin-left: 68px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)) 16px;
+  }
+}
+
+.cat-actions-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s ease, border-color 0.15s ease,
+    transform 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.cat-btn-ghost {
+  background: transparent;
+  color: var(--color-text-main);
+  border: 1.5px solid var(--color-border);
+}
+
+.cat-btn-ghost:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+  border-color: #cddffa;
+}
+
+.cat-btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-light);
+  box-shadow: 0 4px 14px rgba(26, 115, 232, 0.28);
+}
+
+.cat-btn-primary:hover:not(:disabled) {
+  background: var(--color-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(26, 115, 232, 0.34);
+}
+
+.cat-btn-primary:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ==========================================
+   Mobile
+   ========================================== */
+
+@media (max-width: 640px) {
+  .cat-page {
+    padding: 8px 0 100px 0;
+  }
+
+  .cat-title {
+    font-size: 22px;
+  }
+
+  .cat-card {
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  .cat-card-header {
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+  }
+
+  .cat-actions-inner {
+    justify-content: space-between;
+  }
+
+  .cat-btn {
+    flex: 1;
+  }
+}

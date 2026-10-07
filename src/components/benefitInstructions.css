@@ -1,0 +1,315 @@
+/* ==========================================
+   Benefit Payment Instructions
+   Uses globals.css brand tokens
+   ========================================== */
+
+.bpi-page {
+  min-height: 100vh;
+  background: var(--color-surface-alt);
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.bpi-card {
+  width: 100%;
+  max-width: 620px;
+  background: var(--color-surface);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  padding: 32px 32px 40px 32px;
+  animation: bpi-fade 0.35s ease-out;
+}
+
+@keyframes bpi-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bpi-loading {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  padding: 60px 20px;
+}
+
+/* ---- Back link ---- */
+
+.bpi-back {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  padding: 0;
+  margin-bottom: 16px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.bpi-back:hover {
+  color: var(--color-primary);
+}
+
+/* ---- Header ---- */
+
+.bpi-header {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+}
+
+.bpi-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--color-surface-alt);
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+
+.bpi-brand-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.bpi-brand-epassi  { background: #00c389; }
+.bpi-brand-edenred { background: #e30613; }
+
+.bpi-brand-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  letter-spacing: 0.3px;
+}
+
+.bpi-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0 0 8px 0;
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+}
+
+.bpi-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ---- Sections ---- */
+
+.bpi-section {
+  margin-bottom: 28px;
+}
+
+.bpi-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  margin: 0 0 12px 0;
+}
+
+/* ---- Summary ---- */
+
+.bpi-summary {
+  background: var(--color-surface-alt);
+  border-radius: 10px;
+  padding: 8px 20px;
+}
+
+.bpi-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 14px;
+  color: var(--color-text-main);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.bpi-summary-row:last-of-type {
+  border-bottom: none;
+}
+
+.bpi-qty {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.bpi-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0 12px 0;
+  border-top: 2px solid var(--color-border);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-secondary);
+}
+
+/* ---- Steps ---- */
+
+.bpi-steps {
+  list-style: decimal;
+  padding-left: 22px;
+  margin: 0;
+  color: var(--color-text-main);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.bpi-steps li {
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.bpi-steps li::marker {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* ---- WhatsApp button ---- */
+
+.bpi-whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #25D366;
+  color: #ffffff;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+}
+
+.bpi-whatsapp-btn:hover {
+  background: #1FAA56;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+}
+
+.bpi-whatsapp-number {
+  margin: 10px 0 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* ---- Next ---- */
+
+.bpi-next {
+  background: #eef4fe;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.bpi-next-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: var(--color-text-main);
+  line-height: 1.7;
+}
+
+.bpi-next-list li {
+  margin-bottom: 6px;
+}
+
+.bpi-next-list li::marker {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* ---- Note ---- */
+
+.bpi-note {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 24px 0 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+  line-height: 1.6;
+}
+
+/* ---- Empty state button ---- */
+
+.bpi-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.bpi-btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-light);
+}
+
+.bpi-btn-primary:hover {
+  background: var(--color-secondary);
+}
+
+/* ---- Mobile ---- */
+
+@media (max-width: 480px) {
+  .bpi-card {
+    padding: 24px 20px 32px 20px;
+    border-radius: 14px;
+  }
+
+  .bpi-title {
+    font-size: 20px;
+  }
+
+  .bpi-whatsapp-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ---- Order number badge ---- */
+
+.bpi-order-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 20px;
+  background: #eef4fe;
+  border: 1px solid #cddffa;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.bpi-order-badge-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+}
+
+.bpi-order-badge-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-secondary);
+  letter-spacing: 0.5px;
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+}

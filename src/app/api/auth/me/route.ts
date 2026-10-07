@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import { db } from "@/db";
-import { users } from "@/db/schema";
+import { db } from "@/db/schema/index";
+import { users } from "@/db/schema/users";
 import { eq } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {

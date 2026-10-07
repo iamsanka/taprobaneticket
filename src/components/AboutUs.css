@@ -1,64 +1,328 @@
-/* ============================
-   ABOUT US SECTION
-============================ */
+/* ==========================================
+   About Us — editorial layout
+   Uses globals.css tokens
+   ========================================== */
 
 .about-section {
+  position: relative;
   width: 100%;
-  padding: 60px 0;
+  padding: 96px 0 80px 0;
+  background: linear-gradient(
+    180deg,
+    var(--color-surface) 0%,
+    var(--color-surface-alt) 100%
+  );
+  overflow: hidden;
+}
+
+/* Subtle gold "ribbon" on the left edge for a premium feel */
+.about-section::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 40px;
+  width: 4px;
+  height: 120px;
+  background: linear-gradient(
+    to bottom,
+    var(--color-primary),
+    var(--color-accent)
+  );
+  border-radius: 0 4px 4px 0;
+  opacity: 0.9;
+}
+
+.about-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ==========================================
+   Section header
+   ========================================== */
+
+.about-header {
+  max-width: 720px;
+  margin: 0 auto 72px auto;
+  text-align: center;
+}
+
+.about-eyebrow {
+  display: inline-block;
+  padding: 6px 14px;
+  margin-bottom: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: rgba(26, 115, 232, 0.08);
+  border: 1px solid rgba(26, 115, 232, 0.2);
+  border-radius: 999px;
+}
+
+.about-heading {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -1px;
+  color: var(--color-text-main);
+  margin: 0 0 16px 0;
+}
+
+.about-heading-accent {
+  color: var(--color-accent);
+}
+
+.about-intro {
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ==========================================
+   Story blocks
+   ========================================== */
+
+.about-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 96px;
 }
 
 .about-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.about-block.reverse .about-text {
+  order: 2;
+}
+
+.about-block.reverse .about-image {
+  order: 1;
+}
+
+/* ---- Text column ---- */
+
+.about-text {
+  max-width: 560px;
+}
+
+.about-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 80px;
-  gap: 40px;
+  gap: 12px;
+  margin-bottom: 18px;
 }
 
-/* Reverse layout for middle section */
-.about-block.reverse {
-  flex-direction: row-reverse;
+.about-index {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--color-accent);
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
 }
 
-/* Text area */
-.about-text {
-  flex: 1;
+.about-rule {
+  display: inline-block;
+  width: 32px;
+  height: 1.5px;
+  background: var(--color-border);
+}
+
+.about-eyebrow-small {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
 
 .about-title {
-  font-size: 28px;
-  font-weight: bold;
-  color: var(--color-primary);
-  margin-bottom: 15px;
+  position: relative;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--color-text-main);
+  margin: 0 0 20px 0;
+  padding-top: 18px;
+}
+
+/* Gold accent bar above the title */
+.about-title::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: var(--color-accent);
+  border-radius: 2px;
 }
 
 .about-description {
-  font-size: 18px;
-  color: var(--color-text-description);
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--color-text-muted);
+  margin: 0 0 24px 0;
 }
 
-/* Image area */
+/* ---- Tags / chips ---- */
+
+.about-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.about-tag {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--color-secondary);
+  background: rgba(26, 115, 232, 0.08);
+  border: 1px solid rgba(26, 115, 232, 0.16);
+  border-radius: 999px;
+}
+
+/* ---- Image column ---- */
+
 .about-image {
-  flex: 1;
+  position: relative;
 }
 
-.about-image img {
+/* Frame with subtle offset "layered card" effect */
+.about-image-frame {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--color-surface);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease;
+  aspect-ratio: 4 / 3;
+}
+
+.about-image-frame::after {
+  /* Thin gold hairline border on top of the frame */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  pointer-events: none;
+}
+
+.about-image-frame img {
   width: 100%;
-  border-radius: 12px;
+  height: 100%;
   object-fit: cover;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  display: block;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Responsive */
+.about-image-frame:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 20px 52px rgba(0, 0, 0, 0.14),
+    0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.about-image-frame:hover img {
+  transform: scale(1.03);
+}
+
+/* ==========================================
+   Responsive
+   ========================================== */
+
 @media (max-width: 900px) {
-  .about-block,
-  .about-block.reverse {
-    flex-direction: column;
-    text-align: center;
+  .about-section {
+    padding: 72px 0 56px 0;
   }
 
-  .about-image img {
-    max-width: 90%;
+  .about-section::before {
+    display: none;
+  }
+
+  .about-header {
+    margin-bottom: 56px;
+  }
+
+  .about-heading {
+    font-size: 34px;
+  }
+
+  .about-intro {
+    font-size: 16px;
+  }
+
+  .about-blocks {
+    gap: 72px;
+  }
+
+  .about-block,
+  .about-block.reverse {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .about-block.reverse .about-text,
+  .about-block.reverse .about-image {
+    order: initial;
+  }
+
+  .about-text {
+    max-width: 100%;
+  }
+
+  .about-title {
+    font-size: 24px;
+  }
+
+  .about-description {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-shell {
+    padding: 0 16px;
+  }
+
+  .about-heading {
+    font-size: 28px;
+    letter-spacing: -0.5px;
+  }
+
+  .about-eyebrow {
+    font-size: 10px;
+    padding: 5px 12px;
+  }
+
+  .about-block {
+    gap: 24px;
+  }
+
+  .about-tag {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .about-image-frame {
+    border-radius: 12px;
   }
 }

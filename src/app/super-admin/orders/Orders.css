@@ -1,0 +1,256 @@
+/* ==========================================
+   Shared styles for all orders pages
+   (pending-benefit list, all orders, detail)
+   ========================================== */
+
+.sa-orders {
+  padding: 8px 4px;
+}
+
+.sa-orders-header {
+  margin-bottom: 24px;
+}
+
+.sa-orders-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0 0 6px 0;
+}
+
+.sa-orders-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ---- Empty / Error states ---- */
+
+.sa-orders-empty,
+.sa-orders-error {
+  padding: 40px 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--color-text-muted);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.sa-orders-error {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+/* ---- Table ---- */
+
+.sa-orders-table-wrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.sa-orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.sa-orders-table thead {
+  background: var(--color-surface-alt, #f3f6fa);
+}
+
+.sa-orders-table th {
+  text-align: left;
+  padding: 14px 18px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sa-orders-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.sa-orders-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.sa-orders-table tbody tr:hover {
+  background: #fafcff;
+}
+
+/* ---- Cells ---- */
+
+.sa-order-number {
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  font-weight: 600;
+  color: var(--color-secondary);
+  font-size: 13px;
+}
+
+.sa-customer-name {
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.sa-customer-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.sa-method-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef4fe;
+  color: var(--color-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #cddffa;
+}
+
+.sa-td-right {
+  text-align: right;
+}
+
+.sa-td-total {
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+/* ---- Confirm button (pending benefit list) ---- */
+
+.sa-confirm-btn {
+  display: inline-block;
+  padding: 9px 16px;
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.sa-confirm-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover, var(--color-secondary));
+  transform: translateY(-1px);
+}
+
+.sa-confirm-btn:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==========================================
+   Status + method pills
+   (used by all-orders and detail pages)
+   ========================================== */
+
+.sa-pill {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+}
+
+.sa-pill-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sa-pill-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sa-pill-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.sa-pill-neutral {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.sa-pill-info {
+  background: #eef4fe;
+  color: var(--color-secondary);
+  border: 1px solid #cddffa;
+}
+
+.sa-pill-epassi {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.sa-pill-edenred {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ---- Mobile: horizontal scroll tables ---- */
+
+@media (max-width: 768px) {
+  .sa-orders-table-wrap {
+    overflow-x: auto;
+  }
+
+  .sa-orders-table {
+    min-width: 720px;
+  }
+}
+
+/* ==========================================
+   Row actions (Confirm + Cancel side by side)
+   ========================================== */
+
+.sa-row-actions {
+  display: inline-flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.sa-cancel-btn {
+  padding: 9px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--color-danger);
+  background: transparent;
+  color: var(--color-danger);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sa-cancel-btn:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: var(--color-text-light);
+}
+
+.sa-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

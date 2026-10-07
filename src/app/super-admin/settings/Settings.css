@@ -1,0 +1,425 @@
+/* ==========================================
+   Super Admin — Settings page
+   Uses globals.css brand tokens
+   ========================================== */
+
+.sa-settings {
+  padding: 8px 4px;
+}
+
+/* ---- Header ---- */
+
+.sa-settings-header {
+  margin-bottom: 24px;
+}
+
+.sa-settings-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.3px;
+}
+
+.sa-settings-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+/* ---- Empty / error ---- */
+
+.sa-settings-empty,
+.sa-settings-error {
+  padding: 40px 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--color-text-muted);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.sa-settings-error {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+  text-align: left;
+}
+
+/* ==========================================
+   Form shell
+   ========================================== */
+
+.sa-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+}
+
+.sa-settings-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.sa-settings-card-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sa-settings-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  margin: 0 0 4px 0;
+}
+
+.sa-settings-card-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ==========================================
+   Form fields
+   ========================================== */
+
+.sa-form-field {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.sa-form-field:last-child {
+  margin-bottom: 0;
+}
+
+.sa-form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin-bottom: 8px;
+}
+
+.sa-form-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.sa-form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+}
+
+.sa-form-input-mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}
+
+.sa-form-input-short {
+  max-width: 140px;
+}
+
+.sa-form-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ==========================================
+   Actions row
+   ========================================== */
+
+.sa-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.sa-settings-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s ease, transform 0.15s ease,
+    border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sa-settings-btn-cancel {
+  background: transparent;
+  color: var(--color-text-main);
+  border: 1.5px solid var(--color-border);
+}
+
+.sa-settings-btn-cancel:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+  border-color: #cddffa;
+}
+
+.sa-settings-btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sa-settings-btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-light);
+}
+
+.sa-settings-btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover, var(--color-secondary));
+  transform: translateY(-1px);
+}
+
+.sa-settings-btn-primary:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==========================================
+   Save toast
+   ========================================== */
+
+.sa-save-toast {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  animation: sa-toast-fade 0.3s ease-out;
+}
+
+@keyframes sa-toast-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================
+   Metadata footer
+   ========================================== */
+
+.sa-settings-updated {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 4px 0 0 0;
+  text-align: right;
+}
+
+/* ==========================================
+   Payment Method Costs section
+   ========================================== */
+
+.sa-cost-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .sa-cost-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Cost card ---- */
+
+.sa-cost-card {
+  padding: 18px 20px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sa-cost-card:hover {
+  border-color: rgba(26, 115, 232, 0.35);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+/* Colored top accent per method */
+.sa-cost-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--color-primary);
+}
+
+
+.sa-cost-epassi::before {
+  background: #00c389;
+}
+
+.sa-cost-edenred::before {
+  background: #e30613;
+}
+
+/* ---- Header row: name + active toggle ---- */
+
+.sa-cost-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sa-cost-name {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.1px;
+  color: var(--color-text-main);
+}
+
+.sa-cost-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sa-cost-toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  margin: 0;
+}
+
+.sa-cost-toggle input:checked + span {
+  color: var(--color-primary);
+}
+
+/* ---- Two-column percentage / fixed ---- */
+
+.sa-cost-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.sa-cost-row .sa-form-field {
+  margin-bottom: 12px;
+}
+
+/* The card already has more form fields stacked; tighten them */
+.sa-cost-card .sa-form-field {
+  margin-bottom: 12px;
+}
+
+.sa-cost-card .sa-form-field:last-child {
+  margin-bottom: 0;
+}
+
+/* ---- Preview line ---- */
+
+.sa-cost-preview {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin: 4px 0 0 0;
+  padding: 10px 12px;
+  background: var(--color-surface-alt);
+  border-radius: 8px;
+  border-left: 3px solid var(--color-primary);
+}
+
+.sa-cost-epassi .sa-cost-preview {
+  border-left-color: #00c389;
+}
+
+.sa-cost-edenred .sa-cost-preview {
+  border-left-color: #e30613;
+}
+
+.sa-cost-preview strong {
+  color: var(--color-text-main);
+  font-weight: 700;
+}
+
+/* ==========================================
+   Mobile
+   ========================================== */
+
+@media (max-width: 480px) {
+  .sa-settings-card {
+    padding: 20px 16px;
+  }
+
+  .sa-settings-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .sa-settings-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .sa-save-toast {
+    align-self: flex-start;
+    margin-bottom: 8px;
+  }
+
+  .sa-cost-card {
+    padding: 16px;
+  }
+
+  .sa-cost-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,631 @@
+/* ==========================================
+   Super Admin — Ticket Categories list
+   Uses globals.css tokens
+   ========================================== */
+
+.tc-page {
+  padding: 8px 4px;
+}
+
+/* ==========================================
+   Header
+   ========================================== */
+
+.tc-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.tc-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--color-text-main);
+  margin: 0 0 6px 0;
+}
+
+.tc-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.tc-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  background: var(--color-primary);
+  color: var(--color-text-light);
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease,
+    box-shadow 0.15s ease;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.24);
+  white-space: nowrap;
+}
+
+.tc-add-btn:hover {
+  background: var(--color-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(26, 115, 232, 0.3);
+}
+
+/* ==========================================
+   Search + count
+   ========================================== */
+
+.tc-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tc-search-wrap {
+  position: relative;
+  flex: 0 1 380px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tc-search-wrap * {
+  box-sizing: border-box;
+}
+
+.tc-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.tc-search-input {
+  width: 100%;
+  padding: 11px 36px 11px 36px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text-main);
+  background: var(--color-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.tc-search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+}
+
+.tc-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--color-text-muted);
+  padding: 0 6px;
+  line-height: 1;
+}
+
+.tc-search-clear:hover {
+  color: var(--color-text-main);
+}
+
+.tc-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ==========================================
+   Grid
+   ========================================== */
+
+.tc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* ==========================================
+   Category card
+   ========================================== */
+
+.tc-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.tc-card:hover {
+  border-color: rgba(26, 115, 232, 0.35);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
+
+/* ---- Card header ---- */
+
+.tc-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tc-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tc-card-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(26, 115, 232, 0.08);
+  color: var(--color-primary);
+  border: 1px solid rgba(26, 115, 232, 0.16);
+}
+
+.tc-card-name {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: var(--color-text-main);
+  margin: 0;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.tc-card-count {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ---- Card body ---- */
+
+.tc-card-body {
+  flex: 1;
+  margin-bottom: 16px;
+}
+
+.tc-card-empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+  font-style: italic;
+}
+
+.tc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tc-chip {
+  display: inline-block;
+  padding: 5px 12px;
+  background: var(--color-surface-alt);
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+/* ---- Card actions ---- */
+
+.tc-card-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* ==========================================
+   Buttons
+   ========================================== */
+
+.tc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.tc-btn-sm {
+  flex: 1;
+  padding: 9px 14px;
+  font-size: 13px;
+}
+
+.tc-btn-ghost {
+  background: transparent;
+  color: var(--color-text-main);
+  border: 1.5px solid var(--color-border);
+}
+
+.tc-btn-ghost:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+  border-color: #cddffa;
+  color: var(--color-primary);
+}
+
+.tc-btn-danger {
+  background: var(--color-danger);
+  color: var(--color-text-light);
+}
+
+.tc-btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+  transform: translateY(-1px);
+}
+
+.tc-btn-danger-outline {
+  background: transparent;
+  color: var(--color-danger);
+  border: 1.5px solid var(--color-danger);
+}
+
+.tc-btn-danger-outline:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: var(--color-text-light);
+}
+
+.tc-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==========================================
+   States
+   ========================================== */
+
+.tc-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.tc-state-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(26, 115, 232, 0.08);
+  color: var(--color-primary);
+  margin-bottom: 16px;
+}
+
+.tc-state-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin: 0 0 6px 0;
+}
+
+.tc-state-text {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+  max-width: 380px;
+}
+
+.tc-state-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  background: var(--color-primary);
+  color: var(--color-text-light);
+  border: none;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.tc-state-btn:hover {
+  background: var(--color-secondary);
+  transform: translateY(-1px);
+}
+
+/* ---- Spinner ---- */
+
+.tc-state-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: tc-spin 0.8s linear infinite;
+  margin-bottom: 14px;
+}
+
+@keyframes tc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tc-state-text {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ==========================================
+   Error banner
+   ========================================== */
+
+.tc-error {
+  padding: 16px 20px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  color: #991b1b;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+/* ==========================================
+   Delete modal
+   ========================================== */
+
+.tc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: tc-modal-fade 0.2s ease-out;
+}
+
+@keyframes tc-modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tc-modal {
+  background: var(--color-surface);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+  animation: tc-modal-pop 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes tc-modal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.tc-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.tc-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.tc-modal-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tc-modal-close:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+  color: var(--color-text-main);
+}
+
+.tc-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tc-modal-body {
+  padding: 22px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.tc-modal-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-main);
+  margin: 0 0 16px 0;
+}
+
+.tc-modal-text strong {
+  color: var(--color-text-main);
+  font-weight: 700;
+}
+
+.tc-modal-warning {
+  padding: 12px 14px;
+  background: #fef3c7;
+  border-left: 3px solid #d97706;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #78350f;
+}
+
+.tc-modal-warning strong {
+  color: #78350f;
+  font-weight: 700;
+}
+
+.tc-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px 20px 24px;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+/* ==========================================
+   Mobile
+   ========================================== */
+
+@media (max-width: 640px) {
+  .tc-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tc-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tc-title {
+    font-size: 22px;
+  }
+
+  .tc-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .tc-search-wrap {
+    flex: 1 1 auto;
+  }
+
+  .tc-count {
+    text-align: right;
+  }
+
+  .tc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tc-modal {
+    max-height: 95vh;
+    border-radius: 14px;
+  }
+
+  .tc-modal-header,
+  .tc-modal-body {
+    padding: 18px;
+  }
+
+  .tc-modal-actions {
+    padding: 14px 18px 18px 18px;
+  }
+
+  .tc-modal-actions .tc-btn {
+    flex: 1;
+  }
+}

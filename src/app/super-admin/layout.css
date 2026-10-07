@@ -1,80 +1,474 @@
-/* ============================
-   Super Admin Layout Wrapper
-============================ */
+/* ==========================================
+   Super Admin Layout
+   Uses globals.css brand tokens
+   ========================================== */
+
 .super-admin-layout {
   display: flex;
   min-height: 100vh;
-  background: var(--color-background);
-
-  /* ⭐ Add top gap for both sidebar + content */
-  padding-top: 70px; /* increase this to 60px, 80px, etc */
+  background: var(--color-surface-alt);
+  padding-top: 70px;
 }
 
-/* ============================
+/* ==========================================
    Sidebar
-============================ */
+   ========================================== */
+
 .sidebar {
+  position: fixed;
+  top: 70px;
+  left: 0;
   width: 240px;
-  background: #ffffff;
+  height: calc(100vh - 70px);
+  background: var(--color-surface);
   border-right: 1px solid var(--color-border);
-  padding: 24px 20px;
-
-  /* ⭐ Sidebar height adjusted for top gap */
-  height: calc(100vh - 50px);
-
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
-}
-
-.sidebar-title {
-  font-size: 20px;
-  margin-bottom: 24px;
-  color: var(--color-text-main);
-}
-
-.sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  transition: width 0.25s ease;
+  overflow: hidden;
+  z-index: 10;
 }
 
-.sidebar-nav a {
-  text-decoration: none;
+.super-admin-layout.collapsed .sidebar {
+  width: 68px;
+}
+
+/* ==========================================
+   Brand row
+   ========================================== */
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 20px 18px 16px 18px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.sidebar-brand-name {
   font-size: 15px;
+  font-weight: 800;
   color: var(--color-text-main);
-  padding: 10px 12px;
-  border-radius: 6px;
-  transition: background 0.2s ease, color 0.2s ease;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
 }
 
-.sidebar-nav a:hover {
-  background: var(--color-primary);
-  color: #ffffff;
+.sidebar-brand-accent {
+  color: var(--color-accent);
+}
+
+.sidebar-brand-role {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-top: 3px;
+}
+
+.collapse-btn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  transition: background 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.collapse-btn:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* ==========================================
+   Nav
+   ========================================== */
+
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Hide scrollbar on WebKit */
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+/* ---- Section group label ---- */
+
+.sidebar-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  padding: 16px 12px 6px 12px;
+  opacity: 0.75;
+}
+
+.sidebar-group-label:first-child {
+  padding-top: 4px;
+}
+
+/* ---- Standalone nav link ---- */
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-main);
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sidebar-link:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+}
+
+.sidebar-link.active {
+  background: #eef4fe;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.sidebar-link.active .sidebar-icon {
+  color: var(--color-primary);
+}
+
+.sidebar-icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: color 0.15s ease;
+}
+
+.sidebar-link:hover .sidebar-icon,
+.sidebar-section-title:hover .sidebar-icon {
+  color: var(--color-primary);
+}
+
+.sidebar-link.active .sidebar-icon {
+  color: var(--color-primary);
+}
+
+/* ---- Collapsed adjustments ---- */
+
+.super-admin-layout.collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 20px 8px 16px 8px;
+}
+
+.super-admin-layout.collapsed .sidebar-nav {
+  padding: 16px 8px;
+  align-items: center;
+}
+
+.super-admin-layout.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 10px 0;
+  width: 44px;
+  gap: 0;
+}
+
+.super-admin-layout.collapsed .sidebar-group-label {
+  display: none;
+}
+
+/* ==========================================
+   Section with submenu (Orders, Users)
+   ========================================== */
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-main);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-section-title > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-section-title.active {
+  color: var(--color-primary);
+}
+
+.sidebar-section-title.active .sidebar-icon {
+  color: var(--color-primary);
+}
+
+/* Submenu list */
+
+.sidebar-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-left: 21px;
+  padding-left: 12px;
+  padding-bottom: 4px;
+  border-left: 1.5px solid var(--color-border);
+}
+
+.sidebar-sublink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sidebar-sublink:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text-main);
+}
+
+.sidebar-sublink.active {
+  background: #eef4fe;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ==========================================
+   Badge
+   ========================================== */
+
+.sidebar-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--color-accent);
+  color: var(--color-text-main);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ==========================================
+   Footer (logout)
+   ========================================== */
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .logout-btn {
-  margin-top: 30px;
-  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
-  background: var(--btn-login);
-  color: var(--btn-login-text);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
-  transition: background 0.2s ease;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .logout-btn:hover {
-  background: var(--btn-login-hover);
+  background: var(--color-danger);
+  color: var(--color-text-light);
+  border-color: var(--color-danger);
 }
 
-/* ============================
-   Main Content
-============================ */
+.logout-btn .sidebar-icon {
+  color: currentColor;
+}
+
+.super-admin-layout.collapsed .logout-btn {
+  padding: 10px 0;
+  width: 44px;
+  margin: 0 auto;
+  gap: 0;
+}
+
+.super-admin-layout.collapsed .logout-btn span {
+  display: none;
+}
+
+/* ==========================================
+   Content
+   ========================================== */
+
 .content {
   flex: 1;
   padding: 32px;
+  margin-left: 240px;
+  transition: margin-left 0.25s ease;
+  min-width: 0;
+}
 
-  /* ⭐ Content already pushed down by parent padding */
-  margin-top: 0;
+.super-admin-layout.collapsed .content {
+  margin-left: 68px;
+}
+
+/* ==========================================
+   Mobile
+   ========================================== */
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 68px;
+  }
+
+  .super-admin-layout .content {
+    margin-left: 68px;
+    padding: 20px 16px;
+  }
+
+  .sidebar-brand-text,
+  .sidebar-group-label {
+    display: none;
+  }
+
+  .sidebar-link {
+    justify-content: center;
+    padding: 10px 0;
+    width: 44px;
+    gap: 0;
+  }
+
+  .sidebar-link span,
+  .sidebar-section-title span {
+    display: none;
+  }
+
+  .sidebar-section-title {
+    justify-content: center;
+    width: 44px;
+    padding: 10px 0;
+    margin: 0 auto;
+  }
+
+  .sidebar-submenu {
+    display: none;
+  }
+}
+
+/* ==========================================
+   Collapsible section toggles (Orders / Finance / Users)
+   ========================================== */
+
+.sidebar-section-toggle {
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  padding: 10px 12px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-section-toggle:hover {
+  background: var(--color-surface-alt);
+}
+
+.sidebar-section-toggle:focus-visible {
+  outline: none;
+  background: var(--color-surface-alt);
+  box-shadow: inset 0 0 0 2px rgba(26, 115, 232, 0.35);
+}
+
+/* Chevron on the right side, rotates when open */
+.sidebar-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-chevron.open {
+  transform: rotate(90deg);
+}
+
+.sidebar-section-toggle:hover .sidebar-chevron {
+  color: var(--color-primary);
+}
+
+.sidebar-section-toggle.active .sidebar-chevron {
+  color: var(--color-primary);
+}
+
+/* Smooth open/close animation for the submenu */
+.sidebar-submenu {
+  animation: sidebar-submenu-open 0.18s ease-out;
+}
+
+@keyframes sidebar-submenu-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

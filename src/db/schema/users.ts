@@ -4,6 +4,7 @@ import {
   varchar,
   timestamp,
   pgEnum,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 /* ============================
@@ -33,6 +34,10 @@ export const users = pgTable("users", {
   passwordHash: varchar("password_hash", { length: 255 }),
 
   role: userRoleEnum("role").notNull(),
+
+  // ⭐ NEW: soft-delete flag. Deactivated users cannot log in
+  // but their history (orders, audit entries) is preserved.
+  isActive: boolean("is_active").notNull().default(true),
 
   createdAt: timestamp("created_at")
     .defaultNow()

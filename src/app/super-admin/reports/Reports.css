@@ -1,0 +1,642 @@
+/* ==========================================
+   Super Admin — Reports page
+   Uses globals.css tokens
+   ========================================== */
+
+.rp-page {
+  padding: 8px 4px;
+}
+
+/* ==========================================
+   Header
+   ========================================== */
+
+.rp-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.rp-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--color-text-main);
+  margin: 0 0 6px 0;
+}
+
+.rp-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.rp-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  background: var(--color-primary);
+  color: var(--color-text-light);
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease,
+    box-shadow 0.15s ease;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.24);
+  white-space: nowrap;
+}
+
+.rp-download-btn:hover:not(:disabled) {
+  background: var(--color-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(26, 115, 232, 0.3);
+}
+
+.rp-download-btn:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ==========================================
+   Filters
+   ========================================== */
+
+.rp-filters {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+.rp-filter-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.rp-filter-row-custom {
+  grid-template-columns: 1fr 1fr;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.rp-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rp-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+}
+
+.rp-select,
+.rp-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text-main);
+  background: var(--color-surface);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+
+.rp-input {
+  cursor: text;
+}
+
+.rp-select:focus,
+.rp-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+}
+
+.rp-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.rp-reset-btn {
+  padding: 8px 14px;
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-main);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.rp-reset-btn:hover {
+  background: var(--color-surface-alt);
+  border-color: #cddffa;
+}
+
+/* ==========================================
+   KPI cards
+   ========================================== */
+
+.rp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .rp-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .rp-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rp-kpi {
+  position: relative;
+  padding: 20px 22px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+}
+
+.rp-kpi::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-border);
+}
+
+.rp-kpi-primary::before {
+  background: var(--color-primary);
+}
+.rp-kpi-accent::before {
+  background: var(--color-accent);
+}
+.rp-kpi-success::before {
+  background: #16a34a;
+}
+
+.rp-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+
+.rp-kpi-value {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--color-text-main);
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.rp-kpi-primary .rp-kpi-value {
+  color: var(--color-secondary);
+}
+.rp-kpi-accent .rp-kpi-value {
+  color: #8a6914;
+}
+.rp-kpi-success .rp-kpi-value {
+  color: #15803d;
+}
+
+.rp-kpi-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ==========================================
+   Card
+   ========================================== */
+
+.rp-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+.rp-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.rp-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  margin: 0 0 18px 0;
+}
+
+.rp-card-header .rp-card-title {
+  margin: 0;
+}
+
+.rp-empty {
+  padding: 32px 8px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ==========================================
+   Method breakdown
+   ========================================== */
+
+.rp-method-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 700px) {
+  .rp-method-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rp-method {
+  padding: 16px 18px;
+  background: var(--color-surface-alt);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.rp-method-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.rp-method-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+}
+
+.rp-method-pct {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-text-main);
+}
+
+.rp-method-value {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: var(--color-text-main);
+  margin-bottom: 12px;
+}
+
+.rp-method-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.rp-method-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-primary);
+  transition: width 0.4s ease;
+}
+
+.rp-method-primary .rp-method-bar-fill {
+  background: var(--color-primary);
+}
+.rp-method-epassi .rp-method-bar-fill {
+  background: #00c389;
+}
+.rp-method-edenred .rp-method-bar-fill {
+  background: #e30613;
+}
+
+.rp-method-epassi .rp-method-value {
+  color: #065f46;
+}
+.rp-method-edenred .rp-method-value {
+  color: #991b1b;
+}
+
+/* ==========================================
+   Tables
+   ========================================== */
+
+.rp-table-wrap {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.rp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.rp-table thead {
+  background: var(--color-surface-alt);
+}
+
+.rp-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.rp-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.rp-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rp-table-orders tbody tr:hover {
+  background: #fafcff;
+}
+
+.rp-td-right {
+  text-align: right;
+}
+
+.rp-td-strong {
+  font-weight: 700;
+}
+
+.rp-td-muted {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.rp-pct {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* ---- Cell contents ---- */
+
+.rp-order-number {
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  font-weight: 600;
+  color: var(--color-secondary);
+  font-size: 12px;
+}
+
+.rp-customer-name {
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.rp-customer-email {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ==========================================
+   Pills
+   ========================================== */
+
+.rp-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* Payment method pills */
+.rp-pill-card {
+  background: #eef4fe;
+  color: var(--color-secondary);
+  border: 1px solid #cddffa;
+}
+
+.rp-pill-epassi {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.rp-pill-edenred {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Status pills */
+.rp-pill-status-paid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rp-pill-status-pending,
+.rp-pill-status-pending_benefit {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.rp-pill-status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rp-pill-status-refunded {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* ==========================================
+   States
+   ========================================== */
+
+.rp-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.rp-state-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: rp-spin 0.8s linear infinite;
+  margin-bottom: 14px;
+}
+
+@keyframes rp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rp-state-text {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.rp-error {
+  padding: 16px 20px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  color: #991b1b;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+/* ==========================================
+   Responsive
+   ========================================== */
+
+@media (max-width: 900px) {
+  .rp-filter-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .rp-filter-row-custom {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .rp-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rp-download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .rp-title {
+    font-size: 22px;
+  }
+
+  .rp-filter-row,
+  .rp-filter-row-custom {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-filter-actions {
+    justify-content: stretch;
+  }
+
+  .rp-reset-btn {
+    width: 100%;
+    padding: 11px 14px;
+  }
+
+  .rp-card {
+    padding: 18px 16px;
+  }
+
+  /* Horizontal scroll for tables */
+  .rp-table-wrap {
+    overflow-x: auto;
+  }
+
+  .rp-table {
+    min-width: 720px;
+  }
+}
+
+/* Ensure right-alignment wins over the default th/td left-align */
+.rp-table th.rp-td-right,
+.rp-table td.rp-td-right {
+  text-align: right;
+}
+
+/* ⭐ Discount KPI card (5th card in grid) */
+.rp-kpi-discount {
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  border-color: #fed7aa;
+}
+.rp-kpi-discount .rp-kpi-value {
+  color: #c2410c;
+}
+
+/* ⭐ Discount cell in tables */
+.rp-discount {
+  color: #c2410c;
+  font-weight: 700;
+  cursor: help; /* hints that title= has info on hover */
+}

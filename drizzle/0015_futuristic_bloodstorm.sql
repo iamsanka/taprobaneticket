@@ -1,0 +1,2 @@
+ALTER TABLE "event_sequences" ADD CONSTRAINT "unique_event_sequences_event" UNIQUE("event_id");--> statement-breakpoint
+ALTER TABLE "event_sequences" ADD CONSTRAINT "unique_event_sequences_code" UNIQUE("sequence_code");

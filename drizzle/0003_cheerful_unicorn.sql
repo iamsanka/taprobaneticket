@@ -1,0 +1,1 @@
+ALTER TABLE "events" ALTER COLUMN "gallery_images" SET DATA TYPE text[];

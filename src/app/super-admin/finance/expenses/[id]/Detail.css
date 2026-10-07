@@ -1,0 +1,35 @@
+/* ==========================================
+   Super Admin — Expense detail additions
+   Shared detail styles come from
+   ../../income/[id]/Detail.css
+   ========================================== */
+
+/* ==========================================
+   Overdue due-date in the details list
+   ========================================== */
+
+.fin-detail-overdue {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+/* ==========================================
+   Field hint (small helper text under inputs)
+   ========================================== */
+
+.fin-field-hint {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
+
+/* ==========================================
+   Slightly wider gap for expense form since
+   it has more fields than the income form
+   ========================================== */
+
+.fin-modal-lg .fin-modal-body {
+  gap: 14px;
+}

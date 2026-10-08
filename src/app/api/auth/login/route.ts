@@ -5,6 +5,13 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+// ⭐ Same IP normalization as middleware
+function getClientIp(req: NextRequest): string {
+  const xff = req.headers.get("x-forwarded-for");
+  if (!xff) return "unknown";
+  return xff.split(",")[0].trim();
+}
+
 // Simple brute-force protection (per IP)
 const attempts = new Map<string, { count: number; last: number }>();
 
@@ -20,15 +27,13 @@ function rateLimit(ip: string) {
   }
 
   attempts.set(ip, entry);
-
-  return entry.count > 10; // max 10 attempts per minute
+  return entry.count > 10;
 }
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for") || "unknown";
+  const ip = getClientIp(req);
   const ua = req.headers.get("user-agent") || "unknown";
 
-  // Rate limit
   if (rateLimit(ip)) {
     return NextResponse.json({ error: "Too many attempts" }, { status: 429 });
   }
@@ -47,12 +52,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
-  // Role check
+  // ⭐ Reject deactivated accounts
+  if (!user.isActive) {
+    return NextResponse.json(
+      { error: "Account is deactivated" },
+      { status: 403 }
+    );
+  }
+
   if (!["SUPER_ADMIN", "ADMIN", "AUDIT", "STAFF"].includes(user.role)) {
     return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   }
 
-  // ⭐ 6-hour session
   const token = jwt.sign(
     {
       userId: user.id,
@@ -70,13 +81,12 @@ export async function POST(req: NextRequest) {
 
   const res = NextResponse.json({ success: true });
 
-  // Secure cookie
   res.cookies.set("session", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",       // ⭐ matches middleware
     path: "/",
-    maxAge: 60 * 60 * 6, // 6 hours
+    maxAge: 60 * 60 * 6,
   });
 
   return res;

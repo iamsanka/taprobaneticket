@@ -53,7 +53,14 @@ export async function POST(
           { status: 409 }
         );
       }
-      console.error("finalizeOrder failed:", result.error);
+
+      // ⭐ TypeScript narrowing — `error` only exists on the "error" variant
+      if (result.reason === "error") {
+        console.error("finalizeOrder failed:", result.error);
+      } else {
+        console.error("finalizeOrder failed with reason:", result.reason);
+      }
+
       return NextResponse.json(
         { error: "Failed to finalize order" },
         { status: 500 }

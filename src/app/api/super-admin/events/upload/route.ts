@@ -19,6 +19,7 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // ⭐ Explicit <Response> generic so TS knows what resolve() returns
     return await new Promise<Response>((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -27,12 +28,13 @@ export async function POST(req: Request) {
         },
         (error, result) => {
           if (error) reject(error);
-          else resolve(
-            NextResponse.json({
-              success: true,
-              url: result?.secure_url,
-            })
-          );
+          else
+            resolve(
+              NextResponse.json({
+                success: true,
+                url: result?.secure_url,
+              })
+            );
         }
       );
 

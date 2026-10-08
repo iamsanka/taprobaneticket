@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { jwtVerify, SignJWT } from "jose";
+
+// ⭐ jose needs the secret as Uint8Array, not a string
+function getSecret(): Uint8Array {
+  const s = process.env.SESSION_SECRET;
+  if (!s) {
+    throw new Error("SESSION_SECRET is not set");
+  }
+  return new TextEncoder().encode(s);
+}
 
 // ⭐ Take the leftmost (client) IP from x-forwarded-for.
 function getClientIp(req: NextRequest): string {
@@ -22,21 +31,23 @@ export async function middleware(req: NextRequest) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.SESSION_SECRET!, {
+    // ⭐ jose's jwtVerify is async (Web Crypto is async)
+    const { payload } = await jwtVerify(token, getSecret(), {
       issuer: "taprobaneticket.com",
       audience: "taprobaneticket-admin",
-    }) as {
-      userId: number;
-      role: string;
-      ip?: string;
-      ua?: string;
+    });
+
+    const decoded = {
+      userId: payload.userId as number,
+      role: payload.role as string,
+      ip: payload.ip as string | undefined,
+      ua: payload.ua as string | undefined,
     };
 
-    // IP + User-Agent binding — both normalized the same way as login
+    // IP + User-Agent binding
     const reqIp = getClientIp(req);
     const reqUa = req.headers.get("user-agent") || "unknown";
 
-    // ⭐ Log the mismatch so you can see WHY it fails in prod
     if (decoded.ip !== reqIp) {
       console.log(
         `[middleware] IP BINDING FAILED — token: "${decoded.ip}" | request: "${reqIp}"`
@@ -68,26 +79,24 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
-    // Session rotation
-    const newToken = jwt.sign(
-      {
-        userId: decoded.userId,
-        role: decoded.role,
-        ua: decoded.ua,
-        ip: decoded.ip,
-      },
-      process.env.SESSION_SECRET!,
-      {
-        expiresIn: "6h",
-        issuer: "taprobaneticket.com",
-        audience: "taprobaneticket-admin",
-      }
-    );
+    // ⭐ Session rotation — sign with jose
+    const newToken = await new SignJWT({
+      userId: decoded.userId,
+      role: decoded.role,
+      ua: decoded.ua,
+      ip: decoded.ip,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setIssuer("taprobaneticket.com")
+      .setAudience("taprobaneticket-admin")
+      .setExpirationTime("6h")
+      .sign(getSecret());
 
     const res = NextResponse.next();
     res.cookies.set("session", newToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "strict",
       path: "/",
       maxAge: 60 * 60 * 6,

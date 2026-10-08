@@ -5,6 +5,7 @@ import {
   PDFFont,
   PDFPage,
   PDFImage,
+  LineCapStyle,
 } from "pdf-lib";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -14,6 +15,8 @@ export type PdfTicket = {
   qrDataUrl: string;
   categoryName?: string;
   typeName?: string;
+  seatLabel?: string;
+  unitPrice?: number; // cents
 };
 
 export type PdfOrder = {
@@ -23,32 +26,62 @@ export type PdfOrder = {
   eventTitle: string;
   eventTime: string;
   eventLocation: string;
-  // ⭐ Settings-driven brand name shown in the ticket header
   brandName: string;
+  ticketImageUrl?: string;
+  ticketImageTextColor?: "light" | "dark";
+  eventDate?: string;
+  eventStartTime?: string;
 };
 
-const PAGE_WIDTH = 595;
-const PAGE_HEIGHT = 420;
-const M = 40;      // content margin
-const BORDER = 6;  // colored border thickness
+// ======================================================
+// A5 portrait
+// ======================================================
+const PAGE_WIDTH = 420;
+const PAGE_HEIGHT = 595;
 
 // ======================================================
-// Brand colors — mirrors src/app/styles/globals.css
+// Brand palette — matches globals.css
 // ======================================================
 const C = {
-  primary: rgb(0.102, 0.451, 0.910),    // #1a73e8
-  secondary: rgb(0.094, 0.353, 0.737),  // #185abc
+  primary: rgb(0.165, 0.545, 0.769),    // #2a8bc4
+  secondary: rgb(0.878, 0.478, 0.337),  // #e07a56
   accent: rgb(0.831, 0.686, 0.216),     // #d4af37
-  surface: rgb(1, 1, 1),                // #ffffff
-  surfaceAlt: rgb(0.953, 0.965, 0.980), // #f3f6fa
-  textMain: rgb(0.133, 0.133, 0.133),   // #222222
-  textMuted: rgb(0.333, 0.333, 0.333),  // #555555
+  surface: rgb(1, 1, 1),
+  surfaceAlt: rgb(0.953, 0.965, 0.980),
+  textMain: rgb(0.133, 0.133, 0.133),
+  textMuted: rgb(0.333, 0.333, 0.333),
   textLight: rgb(1, 1, 1),
-  border: rgb(0.878, 0.878, 0.878),     // #e0e0e0
+  border: rgb(0.878, 0.878, 0.878),
+  seatBg: rgb(0.988, 0.929, 0.796),
 };
 
 // ======================================================
-// Public API
+// Layout constants
+// ======================================================
+const CARD_X = 16;
+const CARD_W = PAGE_WIDTH - CARD_X * 2;   // 388
+const CARD_H = 180;
+const CARD_Y = 230;
+const CARD_TOP = CARD_Y + CARD_H;          // 410
+const CARD_PAD = 20;
+const CONTENT_LEFT = CARD_X + CARD_PAD;    // 36
+const CONTENT_RIGHT = CARD_X + CARD_W - CARD_PAD; // 384
+
+// Row baselines inside the card
+const ROW1_Y = CARD_TOP - 42;   // 368 — Location / Category / Type
+const ROW2_Y = ROW1_Y - 42;     // 326 — Date & Time / Price
+const ROW3_Y = ROW2_Y - 42;     // 284 — Seat (optional)
+
+// QR code
+const QR_SIZE = 100; //qr code size 110*110
+const QR_X = PAGE_WIDTH - QR_SIZE - 40;  // right alogned with 30pt margin
+const QR_Y = 70; //vertical position from the bottom of the page
+
+// Footer
+const FOOTER_Y = 22;
+
+// ======================================================
+// Entry point
 // ======================================================
 
 export async function generateTicketPdf(
@@ -68,362 +101,612 @@ export async function generateTicketPdf(
   const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  const logo = await loadLogo(pdfDoc);
 
-  await drawTicketPage(pdfDoc, page, order, ticket, bold, regular, logo);
+  const wantPhoto = !!(order.ticketImageUrl && order.ticketImageTextColor);
+  let ticketImage: PDFImage | null = null;
+  if (wantPhoto) {
+    ticketImage = await loadTicketBackground(pdfDoc, order.ticketImageUrl!);
+  }
+
+  if (ticketImage) {
+    await drawPhotoMode(pdfDoc, page, order, ticket, bold, regular, ticketImage);
+  } else {
+    await drawClassicMode(pdfDoc, page, order, ticket, bold, regular);
+  }
 
   return await pdfDoc.save();
 }
 
 // ======================================================
-// Logo loader
+// Image loaders
 // ======================================================
 
-async function loadLogo(pdfDoc: PDFDocument): Promise<PDFImage | null> {
-  try {
-    const logoPath = path.join(process.cwd(), "public", "logo.jpg");
-    const bytes = await readFile(logoPath);
+const bgCache = new Map<string, Uint8Array>();
+const BG_CACHE_MAX = 20;
 
-    try {
-      return await pdfDoc.embedJpg(bytes);
-    } catch {
-      try {
-        return await pdfDoc.embedPng(bytes);
-      } catch {
-        console.warn("generateTicketPdf: logo could not be embedded");
-        return null;
-      }
+async function fetchImageBytes(url: string): Promise<Uint8Array | null> {
+  const hit = bgCache.get(url);
+  if (hit) return hit;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(
+        `generateTicketPdf: ticket image HTTP ${res.status} for ${url}`
+      );
+      return null;
     }
-  } catch {
-    console.warn("generateTicketPdf: logo not found at public/logo.jpg");
+    const buf = new Uint8Array(await res.arrayBuffer());
+
+    if (bgCache.size >= BG_CACHE_MAX) {
+      const firstKey = bgCache.keys().next().value;
+      if (firstKey) bgCache.delete(firstKey);
+    }
+    bgCache.set(url, buf);
+    return buf;
+  } catch (err) {
+    console.warn("generateTicketPdf: ticket image fetch failed:", err);
     return null;
   }
 }
 
+async function loadTicketBackground(
+  pdfDoc: PDFDocument,
+  url: string
+): Promise<PDFImage | null> {
+  const bytes = await fetchImageBytes(url);
+  if (!bytes) return null;
+  try {
+    return await pdfDoc.embedJpg(bytes);
+  } catch {
+    try {
+      return await pdfDoc.embedPng(bytes);
+    } catch {
+      console.warn("generateTicketPdf: could not embed ticket image");
+      return null;
+    }
+  }
+}
+
 // ======================================================
-// Page renderer
+// Photo mode
 // ======================================================
 
-async function drawTicketPage(
+async function drawPhotoMode(
   pdfDoc: PDFDocument,
   page: PDFPage,
   order: PdfOrder,
   ticket: PdfTicket,
   bold: PDFFont,
   regular: PDFFont,
-  logo: PDFImage | null
+  bg: PDFImage
 ): Promise<void> {
   const W = PAGE_WIDTH;
   const H = PAGE_HEIGHT;
-  const left = M;
-  const right = W - M;
-  const contentW = right - left;
 
-  // ==================================================
-  // BACKGROUND: tinted base with brand border
-  // ==================================================
+  const scale = Math.max(W / bg.width, H / bg.height);
+  const drawW = bg.width * scale;
+  const drawH = bg.height * scale;
+  const x = (W - drawW) / 2;
+  const y = (H - drawH) / 2;
+
+  page.drawImage(bg, { x, y, width: drawW, height: drawH });
+
+  // ---- Card shadow (soft, adds depth) ----
+  page.drawRectangle({
+    x: CARD_X + 2,
+    y: CARD_Y - 4,
+    width: CARD_W,
+    height: CARD_H,
+    color: rgb(0, 0, 0),
+    opacity: 0.22,
+  });
+
+  // ⭐ Semi-transparent frosted card (was opaque white)
+  page.drawRectangle({
+    x: CARD_X,
+    y: CARD_Y,
+    width: CARD_W,
+    height: CARD_H,
+    color: C.surface,
+    opacity: 0.85,
+  });
+
+  // Thin brand stripe on the left edge of the card
+  page.drawRectangle({
+    x: CARD_X,
+    y: CARD_Y,
+    width: 4,
+    height: CARD_H,
+    color: C.primary,
+  });
+
+  await drawDetails(pdfDoc, page, order, ticket, bold, regular);
+  await drawQrAndFooter(pdfDoc, page, order, ticket, bold, regular);
+}
+
+// ======================================================
+// Classic mode
+// ======================================================
+
+async function drawClassicMode(
+  pdfDoc: PDFDocument,
+  page: PDFPage,
+  order: PdfOrder,
+  ticket: PdfTicket,
+  bold: PDFFont,
+  regular: PDFFont
+): Promise<void> {
+  const W = PAGE_WIDTH;
+  const H = PAGE_HEIGHT;
 
   page.drawRectangle({
     x: 0, y: 0, width: W, height: H,
     color: C.surfaceAlt,
   });
 
+  const B = 6;
+  page.drawRectangle({ x: 0, y: 0, width: B, height: H, color: C.primary });
+  page.drawRectangle({ x: W - B, y: 0, width: B, height: H, color: C.accent });
   page.drawRectangle({
-    x: 0, y: 0, width: BORDER, height: H,
-    color: C.primary,
-  });
-
-  page.drawRectangle({
-    x: W - BORDER, y: 0, width: BORDER, height: H,
-    color: C.accent,
-  });
-
-  page.drawRectangle({
-    x: BORDER, y: H - BORDER, width: (W - BORDER * 2) / 2, height: BORDER,
-    color: C.primary,
+    x: B, y: H - B, width: (W - B * 2) / 2, height: B, color: C.primary,
   });
   page.drawRectangle({
-    x: BORDER + (W - BORDER * 2) / 2, y: H - BORDER,
-    width: (W - BORDER * 2) / 2, height: BORDER,
-    color: C.accent,
-  });
-
-  page.drawRectangle({
-    x: BORDER, y: 0, width: (W - BORDER * 2) / 2, height: BORDER,
+    x: B + (W - B * 2) / 2, y: H - B, width: (W - B * 2) / 2, height: B,
     color: C.accent,
   });
   page.drawRectangle({
-    x: BORDER + (W - BORDER * 2) / 2, y: 0,
-    width: (W - BORDER * 2) / 2, height: BORDER,
+    x: B, y: 0, width: (W - B * 2) / 2, height: B, color: C.accent,
+  });
+  page.drawRectangle({
+    x: B + (W - B * 2) / 2, y: 0, width: (W - B * 2) / 2, height: B,
     color: C.primary,
   });
 
-  const cardX = BORDER + 14;
-  const cardY = BORDER + 14;
-  const cardW = W - (BORDER + 14) * 2;
-  const cardH = H - (BORDER + 14) * 2;
+  await drawClassicHeader(page, order, ticket, bold);
 
+  // Card (opaque in classic mode)
   page.drawRectangle({
-    x: cardX + 2, y: cardY - 2, width: cardW, height: cardH,
-    color: rgb(0.86, 0.88, 0.91),
+    x: CARD_X + 2,
+    y: CARD_Y - 4,
+    width: CARD_W,
+    height: CARD_H,
+    color: rgb(0, 0, 0),
+    opacity: 0.06,
   });
-
   page.drawRectangle({
-    x: cardX, y: cardY, width: cardW, height: cardH,
+    x: CARD_X, y: CARD_Y, width: CARD_W, height: CARD_H,
     color: C.surface,
   });
-
-  // ==================================================
-  // CONTENT
-  // ==================================================
-  const cLeft = cardX + 24;
-  const cRight = cardX + cardW - 24;
-  const cTop = cardY + cardH;
-
-  // ---- Header: logo + brand name ----
-  let brandX = cLeft;
-  if (logo) {
-    const maxSize = 40;
-    const scale = Math.min(maxSize / logo.width, maxSize / logo.height);
-    const logoW = logo.width * scale;
-    const logoH = logo.height * scale;
-    const logoY = cTop - 20 - logoH;
-    page.drawImage(logo, { x: cLeft, y: logoY, width: logoW, height: logoH });
-    brandX = cLeft + logoW + 12;
-  }
-
-  // Brand name is now parameterized (from app_settings)
-  const brandText = truncateToWidth(
-    safeText(order.brandName),
-    bold,
-    13,
-    cRight - brandX - 20
-  );
-
-  page.drawText(brandText, {
-    x: brandX,
-    y: cTop - 46,
-    size: 13,
-    font: bold,
-    color: C.textMain,
+  page.drawRectangle({
+    x: CARD_X, y: CARD_Y, width: 4, height: CARD_H,
+    color: C.primary,
   });
 
-  // ---- Header right: category badge + type name ----
-  const categoryLabel = ticket.categoryName ?? "";
-  const typeLabel = ticket.typeName ?? "";
+  await drawDetails(pdfDoc, page, order, ticket, bold, regular);
+  await drawQrAndFooter(pdfDoc, page, order, ticket, bold, regular);
+}
 
-  if (categoryLabel) {
-    const badgeText = categoryLabel.toUpperCase();
-    const badgeSize = 10;
-    const padX = 12;
-    const padY = 5;
+async function drawClassicHeader(
+  page: PDFPage,
+  order: PdfOrder,
+  ticket: PdfTicket,
+  bold: PDFFont
+): Promise<void> {
+  const cLeft = 30;
+  const cRight = PAGE_WIDTH - 30;
+
+  page.drawText(safeText(order.brandName), {
+    x: cLeft, y: PAGE_HEIGHT - 60,
+    size: 11, font: bold, color: C.primary,
+  });
+
+  const titleLines = wrapToMaxLines(
+    safeText(order.eventTitle),
+    bold,
+    22,
+    cRight - cLeft,
+    2
+  );
+
+  const titleStartY = PAGE_HEIGHT - 100;
+  titleLines.forEach((line, i) => {
+    page.drawText(line, {
+      x: cLeft, y: titleStartY - i * 26,
+      size: 22, font: bold, color: C.textMain,
+    });
+  });
+
+  if (ticket.categoryName) {
+    const badgeText = ticket.categoryName.toUpperCase();
+    const badgeSize = 9;
+    const padX = 10;
+    const padY = 4;
     const textW = bold.widthOfTextAtSize(badgeText, badgeSize);
     const badgeW = textW + padX * 2;
     const badgeH = badgeSize + padY * 2;
-
-    const isLounge = /lounge/i.test(categoryLabel);
-    const badgeColor = isLounge ? C.accent : C.primary;
-    const badgeTextColor = isLounge ? C.textMain : C.textLight;
-
-    const badgeX = cRight - badgeW;
-    const badgeY = cTop - 20 - badgeH;
+    const badgeX = cLeft;
+    const badgeY = titleStartY - (titleLines.length - 1) * 26 - 34;
 
     page.drawRectangle({
-      x: badgeX, y: badgeY, width: badgeW, height: badgeH,
-      color: badgeColor,
+      x: badgeX, y: badgeY,
+      width: badgeW, height: badgeH,
+      color: C.primary,
     });
-
     page.drawText(badgeText, {
-      x: badgeX + padX,
-      y: badgeY + padY + 1,
-      size: badgeSize,
-      font: bold,
-      color: badgeTextColor,
+      x: badgeX + padX, y: badgeY + padY + 1,
+      size: badgeSize, font: bold, color: C.textLight,
     });
   }
+}
 
+// ======================================================
+// Details — rows inside the card
+// ======================================================
+
+async function drawDetails(
+  pdfDoc: PDFDocument,
+  page: PDFPage,
+  order: PdfOrder,
+  ticket: PdfTicket,
+  bold: PDFFont,
+  regular: PDFFont
+): Promise<void> {
+  const categoryLabel = ticket.categoryName ?? "";
+  const typeLabel = ticket.typeName ?? "";
+
+  // ---------- ROW 1: Location | Category badge | Type ----------
+  // Pin icon
+  drawPinIcon(page, CONTENT_LEFT + 6, ROW1_Y + 2, 11, C.primary);
+
+  const locationText = truncateToWidth(
+    safeText(order.eventLocation || "—"),
+    bold,
+    12,
+    150
+  );
+  page.drawText(locationText, {
+    x: CONTENT_LEFT + 18, y: ROW1_Y - 2,
+    size: 12, font: bold, color: C.textMain,
+  });
+
+  // Right side: [CATEGORY] [TYPE]
   if (typeLabel) {
-    const typeW = bold.widthOfTextAtSize(typeLabel, 14);
-    page.drawText(typeLabel, {
-      x: cRight - typeW,
-      y: cTop - 58,
-      size: 14,
-      font: bold,
-      color: C.textMain,
+    const typeText = truncateToWidth(safeText(typeLabel), bold, 12, 100);
+    const typeW = bold.widthOfTextAtSize(typeText, 12);
+    page.drawText(typeText, {
+      x: CONTENT_RIGHT - typeW,
+      y: ROW1_Y - 2,
+      size: 12, font: bold, color: C.textMain,
+    });
+
+    if (categoryLabel) {
+      const badgeText = categoryLabel.toUpperCase();
+      const badgeSize = 9;
+      const padX = 8;
+      const padY = 3;
+      const textW = bold.widthOfTextAtSize(badgeText, badgeSize);
+      const badgeW = textW + padX * 2;
+      const badgeH = badgeSize + padY * 2;
+      const badgeX = CONTENT_RIGHT - typeW - 10 - badgeW;
+      const badgeY = ROW1_Y - 5;
+
+      const isLounge = /lounge/i.test(categoryLabel);
+      const badgeColor = isLounge ? C.accent : C.primary;
+      const badgeTextColor = isLounge ? C.textMain : C.textLight;
+
+      page.drawRectangle({
+        x: badgeX, y: badgeY,
+        width: badgeW, height: badgeH,
+        color: badgeColor,
+      });
+      page.drawText(badgeText, {
+        x: badgeX + padX, y: badgeY + padY + 1,
+        size: badgeSize, font: bold, color: badgeTextColor,
+      });
+    }
+  }
+
+  // ---------- ROW 2: Date & Time | Price ----------
+  drawCalendarIcon(page, CONTENT_LEFT + 6, ROW2_Y + 2, 11, C.primary);
+
+  const dateText = truncateToWidth(
+    safeText(order.eventTime || "—"),
+    bold,
+    12,
+    170
+  );
+  page.drawText(dateText, {
+    x: CONTENT_LEFT + 18, y: ROW2_Y - 2,
+    size: 12, font: bold, color: C.textMain,
+  });
+
+  if (ticket.unitPrice !== undefined && ticket.unitPrice > 0) {
+    const priceText = `€${(ticket.unitPrice / 100).toFixed(2)}`;
+    const priceSize = 16;
+    const priceW = bold.widthOfTextAtSize(priceText, priceSize);
+    page.drawText(priceText, {
+      x: CONTENT_RIGHT - priceW,
+      y: ROW2_Y - 4,
+      size: priceSize, font: bold, color: C.secondary,
     });
   }
 
-  // ---- Divider ----
-  const dividerY = cTop - 78;
-  page.drawLine({
-    start: { x: cLeft, y: dividerY },
-    end: { x: cRight, y: dividerY },
-    thickness: 0.7,
-    color: C.border,
+  // ---------- ROW 3: Seat (only if seated) ----------
+  if (ticket.seatLabel) {
+    // Chair icon
+    drawSeatIcon(page, CONTENT_LEFT + 6, ROW3_Y + 2, 11, C.accent);
+
+    // "SEAT" label
+    page.drawText("SEAT", {
+      x: CONTENT_LEFT + 18, y: ROW3_Y + 2,
+      size: 9, font: bold, color: C.textMuted,
+    });
+
+    // Seat value — big and prominent
+    const seatText = safeText(ticket.seatLabel);
+    page.drawText(seatText, {
+      x: CONTENT_LEFT + 18, y: ROW3_Y - 14,
+      size: 18, font: bold, color: C.primary,
+    });
+
+    // Gold accent pill behind the seat value
+    const seatW = bold.widthOfTextAtSize(seatText, 18);
+    page.drawRectangle({
+      x: CONTENT_LEFT + 12, y: ROW3_Y - 20,
+      width: seatW + 12, height: 26,
+      color: C.seatBg,
+      opacity: 0.65,
+    });
+    // Redraw the text on top of the pill
+    page.drawText(seatText, {
+      x: CONTENT_LEFT + 18, y: ROW3_Y - 14,
+      size: 18, font: bold, color: C.primary,
+    });
+  }
+
+  void pdfDoc;
+  void regular;
+}
+
+// ======================================================
+// QR code + footer
+// ======================================================
+
+async function drawQrAndFooter(
+  pdfDoc: PDFDocument,
+  page: PDFPage,
+  order: PdfOrder,
+  ticket: PdfTicket,
+  bold: PDFFont,
+  regular: PDFFont
+): Promise<void> {
+  // "SCAN AT ENTRANCE" label
+  const scanText = "SCAN AT ENTRANCE";
+  const scanSize = 8;
+  const scanW = bold.widthOfTextAtSize(scanText, scanSize);
+  page.drawText(scanText, {
+    x: QR_X + (QR_SIZE - scanW) / 2,
+    y: QR_Y + QR_SIZE + 12,
+    size: scanSize, font: bold, color: C.textMuted,
   });
 
-  // ---- Event title ----
-  const titleText = truncateToWidth(
-    safeText(order.eventTitle),
-    bold,
-    20,
-    cRight - cLeft - 20
-  );
-
+  // QR frame
+  const framePad = 8;
   page.drawRectangle({
-    x: cLeft,
-    y: dividerY - 32,
-    width: 3,
-    height: 22,
-    color: C.primary,
-  });
-
-  page.drawText(titleText, {
-    x: cLeft + 12,
-    y: dividerY - 30,
-    size: 20,
-    font: bold,
-    color: C.textMain,
-  });
-
-  // ---- Details grid ----
-  const colLeftX = cLeft;
-  const colRightX = cLeft + 200;
-
-  let detailY = dividerY - 86;
-
-  drawLabelValue(page, "WHEN", order.eventTime, colLeftX, detailY, bold, regular);
-  drawLabelValue(
-    page,
-    "VENUE",
-    order.eventLocation,
-    colRightX,
-    detailY,
-    bold,
-    regular,
-    280
-  );
-
-  detailY -= 58;
-  drawLabelValue(page, "CATEGORY", categoryLabel || "-", colLeftX, detailY, bold, regular);
-  drawLabelValue(page, "TYPE", typeLabel || "-", colRightX, detailY, bold, regular);
-
-  detailY -= 58;
-  drawLabelValue(
-    page,
-    "TICKET CODE",
-    ticket.ticketNumber,
-    colLeftX,
-    detailY,
-    bold,
-    regular,
-    340
-  );
-
-  // ==================================================
-  // QR CODE (bottom-right of card)
-  // ==================================================
-  const qrSize = 150;
-  const qrX = cRight - qrSize;
-  const qrY = cardY + 40;
-
-  // QR label above the box
-  const qrLabelText = "SCAN AT ENTRANCE";
-  const qrLabelW = bold.widthOfTextAtSize(qrLabelText, 8);
-  page.drawText(qrLabelText, {
-    x: qrX + (qrSize - qrLabelW) / 2,
-    y: qrY + qrSize + 24,
-    size: 8,
-    font: bold,
-    color: C.textMuted,
-  });
-
-  // Gray halo tile behind the frame — separates the QR from the white card
-  page.drawRectangle({
-    x: qrX - 14,
-    y: qrY - 14,
-    width: qrSize + 28,
-    height: qrSize + 28,
-    color: rgb(0.94, 0.94, 0.94),
-  });
-
-  // QR frame — solid black border gives the decoder a strong anchor
-  page.drawRectangle({
-    x: qrX - 8,
-    y: qrY - 8,
-    width: qrSize + 16,
-    height: qrSize + 16,
+    x: QR_X - framePad,
+    y: QR_Y - framePad,
+    width: QR_SIZE + framePad * 2,
+    height: QR_SIZE + framePad * 2,
     color: rgb(1, 1, 1),
     borderColor: rgb(0, 0, 0),
-    borderWidth: 2,
+    borderWidth: 1.5,
   });
 
-  // Blue accent bar on top of the QR frame
+  // Brand accent bar on top of QR frame
   page.drawRectangle({
-    x: qrX - 8,
-    y: qrY + qrSize + 4,
-    width: qrSize + 16,
+    x: QR_X - framePad,
+    y: QR_Y + QR_SIZE + framePad - 3,
+    width: QR_SIZE + framePad * 2,
     height: 3,
     color: C.primary,
   });
 
+  // QR image
   const qrImage = await pdfDoc.embedPng(dataUrlToBytes(ticket.qrDataUrl));
   page.drawImage(qrImage, {
-    x: qrX, y: qrY, width: qrSize, height: qrSize,
+    x: QR_X, y: QR_Y,
+    width: QR_SIZE, height: QR_SIZE,
   });
 
   // ---- Footer ----
-  page.drawText(safeText(`Order ${order.orderNumber}`), {
-    x: cLeft,
-    y: cardY + 22,
-    size: 9,
-    font: regular,
+  // Divider line above footer
+  page.drawLine({
+    start: { x: CONTENT_LEFT, y: FOOTER_Y + 34 },
+    end: { x: CONTENT_RIGHT, y: FOOTER_Y + 34 },
+    thickness: 0.5,
     color: C.textMuted,
+    opacity: 0.5,
   });
 
-  page.drawText(safeText(`Issued to ${order.customerName}`), {
-    x: cLeft,
-    y: cardY + 10,
-    size: 8,
-    font: regular,
-    color: C.textMuted,
+  // Left: Ticket No
+  page.drawText("Ticket No:", {
+    x: CONTENT_LEFT, y: FOOTER_Y + 20,
+    size: 9, font: bold, color: C.textMuted,
+  });
+  page.drawText(safeText(ticket.ticketNumber), {
+    x: CONTENT_LEFT, y: FOOTER_Y + 4,
+    size: 12, font: bold, color: C.textMain,
+  });
+
+  // Right: Name
+  const nameLabel = "Name:";
+  const nameLabelW = bold.widthOfTextAtSize(nameLabel, 9);
+  const nameText = truncateToWidth(
+    safeText(order.customerName),
+    bold,
+    12,
+    160
+  );
+  const nameTextW = bold.widthOfTextAtSize(nameText, 12);
+  const nameLeftEdge =
+    CONTENT_RIGHT - Math.max(nameLabelW, nameTextW);
+
+  page.drawText(nameLabel, {
+    x: nameLeftEdge, y: FOOTER_Y + 20,
+    size: 9, font: bold, color: C.textMuted,
+  });
+  page.drawText(nameText, {
+    x: nameLeftEdge, y: FOOTER_Y + 4,
+    size: 12, font: bold, color: C.textMain,
+  });
+
+  void regular;
+}
+
+// ======================================================
+// Icons — drawn with primitives (no external assets)
+// ======================================================
+
+/**
+ * Map pin icon — a filled circle with a small vertical line tail.
+ * Center is at (cx, cy). Height is about `size`.
+ */
+function drawPinIcon(
+  page: PDFPage,
+  cx: number,
+  cy: number,
+  size: number,
+  color: ReturnType<typeof rgb>
+): void {
+  const r = size * 0.42;
+
+  // Head circle
+  page.drawCircle({
+    x: cx,
+    y: cy + size * 0.2,
+    size: r,
+    color,
+  });
+
+  // Inner hole (white)
+  page.drawCircle({
+    x: cx,
+    y: cy + size * 0.2,
+    size: r * 0.4,
+    color: rgb(1, 1, 1),
+  });
+
+  // Tail — short thick line pointing down
+  page.drawLine({
+    start: { x: cx, y: cy + size * 0.2 - r },
+    end: { x: cx, y: cy - size * 0.35 },
+    thickness: size * 0.18,
+    color,
+    lineCap: LineCapStyle.Round,
+  });
+}
+
+/**
+ * Calendar icon — outlined rectangle with two hangers on top
+ * and a horizontal divider line.
+ */
+function drawCalendarIcon(
+  page: PDFPage,
+  cx: number,
+  cy: number,
+  size: number,
+  color: ReturnType<typeof rgb>
+): void {
+  const w = size * 0.9;
+  const h = size * 0.8;
+  const x = cx - w / 2;
+  const y = cy - h / 2 + size * 0.1;
+
+  // Outline rectangle
+  page.drawRectangle({
+    x,
+    y,
+    width: w,
+    height: h,
+    borderColor: color,
+    borderWidth: 1.2,
+  });
+
+  // Two vertical hangers on top
+  page.drawLine({
+    start: { x: cx - w * 0.25, y: y + h },
+    end: { x: cx - w * 0.25, y: y + h + size * 0.22 },
+    thickness: 1.5,
+    color,
+  });
+  page.drawLine({
+    start: { x: cx + w * 0.25, y: y + h },
+    end: { x: cx + w * 0.25, y: y + h + size * 0.22 },
+    thickness: 1.5,
+    color,
+  });
+
+  // Horizontal divider near the top
+  page.drawLine({
+    start: { x, y: y + h * 0.6 },
+    end: { x: x + w, y: y + h * 0.6 },
+    thickness: 1,
+    color,
+  });
+}
+
+/**
+ * Chair icon — a rectangle with a small "backrest" bar on top.
+ */
+function drawSeatIcon(
+  page: PDFPage,
+  cx: number,
+  cy: number,
+  size: number,
+  color: ReturnType<typeof rgb>
+): void {
+  const w = size * 0.75;
+  const h = size * 0.55;
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+
+  // Seat
+  page.drawRectangle({
+    x,
+    y,
+    width: w,
+    height: h,
+    borderColor: color,
+    borderWidth: 1.2,
+  });
+
+  // Backrest line above the seat
+  page.drawLine({
+    start: { x: cx - w * 0.35, y: y + h + size * 0.1 },
+    end: { x: cx + w * 0.35, y: y + h + size * 0.1 },
+    thickness: 2,
+    color,
+  });
+
+  // Two vertical supports
+  page.drawLine({
+    start: { x: cx - w * 0.35, y: y + h + size * 0.1 },
+    end: { x: cx - w * 0.35, y: y + h },
+    thickness: 1.2,
+    color,
+  });
+  page.drawLine({
+    start: { x: cx + w * 0.35, y: y + h + size * 0.1 },
+    end: { x: cx + w * 0.35, y: y + h },
+    thickness: 1.2,
+    color,
   });
 }
 
 // ======================================================
 // Helpers
 // ======================================================
-
-function drawLabelValue(
-  page: PDFPage,
-  label: string,
-  value: string,
-  x: number,
-  y: number,
-  bold: PDFFont,
-  regular: PDFFont,
-  maxWidth?: number
-) {
-  page.drawText(label, {
-    x, y,
-    size: 8,
-    font: bold,
-    color: C.textMuted,
-  });
-
-  const safeValue = safeText(value || "-");
-  const finalValue = maxWidth
-    ? truncateToWidth(safeValue, bold, 13, maxWidth)
-    : safeValue;
-
-  page.drawText(finalValue, {
-    x,
-    y: y - 18,
-    size: 13,
-    font: bold,
-    color: C.textMain,
-  });
-}
 
 function truncateToWidth(
   text: string,
@@ -437,6 +720,60 @@ function truncateToWidth(
     t = t.slice(0, -1);
   }
   return t + "...";
+}
+
+function wrapToMaxLines(
+  text: string,
+  font: PDFFont,
+  size: number,
+  maxWidth: number,
+  maxLines: number
+): string[] {
+  if (!text) return [""];
+  if (font.widthOfTextAtSize(text, size) <= maxWidth) return [text];
+
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const candidate = current ? `${current} ${word}` : word;
+
+    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
+      current = candidate;
+      continue;
+    }
+
+    if (current) {
+      lines.push(current);
+      current = word;
+      if (lines.length >= maxLines) {
+        const rest = [word, ...words.slice(i + 1)].join(" ");
+        lines[maxLines - 1] = truncateToWidth(rest, font, size, maxWidth);
+        return lines;
+      }
+    } else {
+      lines.push(truncateToWidth(word, font, size, maxWidth));
+      current = "";
+      if (lines.length >= maxLines) return lines;
+    }
+  }
+
+  if (current) {
+    if (lines.length >= maxLines) {
+      lines[maxLines - 1] = truncateToWidth(
+        `${lines[maxLines - 1]} ${current}`,
+        font,
+        size,
+        maxWidth
+      );
+    } else {
+      lines.push(current);
+    }
+  }
+
+  return lines.slice(0, maxLines);
 }
 
 function dataUrlToBytes(dataUrl: string): Uint8Array {

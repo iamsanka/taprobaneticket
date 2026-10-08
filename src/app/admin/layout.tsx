@@ -17,7 +17,6 @@ export default function AdminLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [pendingCount, setPendingCount] = useState<number>(0);
 
-  // ---- Role guard ----
   const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -111,8 +110,9 @@ export default function AdminLayout({
     "/admin/finance/expenses"
   );
   const isEmailsActive = pathname?.startsWith("/admin/emails");
-  // ⭐ NEW — Discounts active state
   const isDiscountsActive = pathname?.startsWith("/admin/discounts");
+  // ⭐ NEW
+  const isRafflesActive = pathname?.startsWith("/admin/raffles");
   const isReportsActive =
     pathname === "/admin/reports" ||
     pathname?.startsWith("/admin/reports/");
@@ -176,7 +176,7 @@ export default function AdminLayout({
             {!collapsed && <span>Dashboard</span>}
           </Link>
 
-          {/* 2. Orders (with submenu) */}
+          {/* 2. Orders */}
           {collapsed ? (
             <Link
               href="/admin/orders"
@@ -240,7 +240,7 @@ export default function AdminLayout({
             </div>
           )}
 
-          {/* 3. Finance (with submenu) */}
+          {/* 3. Finance */}
           {collapsed ? (
             <Link
               href="/admin/finance"
@@ -311,7 +311,7 @@ export default function AdminLayout({
             {!collapsed && <span>Emails</span>}
           </Link>
 
-          {/* 5. Discounts ← ⭐ NEW */}
+          {/* 5. Discounts */}
           <Link
             href="/admin/discounts"
             className={`sidebar-link ${isDiscountsActive ? "active" : ""}`}
@@ -321,7 +321,17 @@ export default function AdminLayout({
             {!collapsed && <span>Discounts</span>}
           </Link>
 
-          {/* 6. Reports */}
+          {/* ⭐ 6. Raffles — NEW */}
+          <Link
+            href="/admin/raffles"
+            className={`sidebar-link ${isRafflesActive ? "active" : ""}`}
+            title={collapsed ? "Raffles" : undefined}
+          >
+            <SidebarIcon name="raffles" />
+            {!collapsed && <span>Raffles</span>}
+          </Link>
+
+          {/* 7. Reports */}
           <Link
             href="/admin/reports"
             className={`sidebar-link ${isReportsActive ? "active" : ""}`}
@@ -331,7 +341,7 @@ export default function AdminLayout({
             {!collapsed && <span>Reports</span>}
           </Link>
 
-          {/* 7. Scanner */}
+          {/* 8. Scanner */}
           <Link
             href="/admin/scanner"
             className={`sidebar-link ${isScannerActive ? "active" : ""}`}
@@ -341,7 +351,7 @@ export default function AdminLayout({
             {!collapsed && <span>Scanner</span>}
           </Link>
 
-          {/* 8. Users (with submenu) */}
+          {/* 9. Users */}
           {collapsed ? (
             <Link
               href="/admin/users"
@@ -445,6 +455,7 @@ function SidebarIcon({
     | "finance"
     | "emails"
     | "discounts"
+    | "raffles"
     | "users"
     | "logout";
 }) {
@@ -511,11 +522,22 @@ function SidebarIcon({
         </svg>
       );
     case "discounts":
-      // ⭐ Ticket-tag icon — matches super-admin layout
       return (
         <svg {...common}>
           <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
           <line x1="7" y1="7" x2="7.01" y2="7" />
+        </svg>
+      );
+    case "raffles":
+      // ⭐ Trophy icon
+      return (
+        <svg {...common}>
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+          <path d="M4 22h16" />
+          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
         </svg>
       );
     case "users":

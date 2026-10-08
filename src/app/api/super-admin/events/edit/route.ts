@@ -65,6 +65,9 @@ export async function PUT(req: NextRequest) {
       pastEventTitle,
       pastEventStory,
       externalLinks: rawExternalLinks,
+      // ⭐ NEW — ticket design
+      ticketImageUrl,
+      ticketImageTextColor,
     } = body;
 
     // ---- Validate required fields ----
@@ -100,16 +103,6 @@ export async function PUT(req: NextRequest) {
 
     const sequenceCode = incomingTrimmed || currentCode;
 
-    // ==================================================
-    // Sequence code validation — IMPORTANT
-    // --------------------------------------------------
-    // We only REQUIRE a sequence code when the event has no sold tickets.
-    // If tickets have already been sold, we allow the save to proceed even
-    // if the sequence code is missing — the tickets are already out there,
-    // and blocking the save serves no purpose. This unblocks older events
-    // that lost their sequence row or were created before the feature
-    // existed.
-    // ==================================================
     if (!sequenceCode && !hasSoldTickets) {
       return NextResponse.json(
         { error: "Sequence code is required" },
@@ -127,12 +120,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // ---- Lock check: cannot change code once sold (unless current is empty) ----
-    if (
-      hasSoldTickets &&
-      currentCode &&
-      sequenceCode !== currentCode
-    ) {
+    if (hasSoldTickets && currentCode && sequenceCode !== currentCode) {
       return NextResponse.json(
         {
           error:
@@ -142,7 +130,6 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // ---- Pre-check uniqueness when changing ----
     if (sequenceCode && sequenceCode !== currentCode) {
       const conflict = await db
         .select({ id: eventSequences.id })
@@ -162,9 +149,7 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // ==================================================
-    // Normalize past event fields
-    // ==================================================
+    // ---- Normalize past event fields ----
     const normalizedPastTitle = pastEventTitle
       ? String(pastEventTitle).trim() || null
       : null;
@@ -173,9 +158,25 @@ export async function PUT(req: NextRequest) {
       ? String(pastEventStory).trim() || null
       : null;
 
-    // ==================================================
-    // Validate + normalize external links
-    // ==================================================
+    // ⭐ NEW — normalize ticket design fields
+    // Rules:
+    //   - No image → both fields NULL (classic ticket)
+    //   - Image + valid color → both saved
+    //   - Image + missing/invalid color → default to "light"
+    const hasTicketImage =
+      typeof ticketImageUrl === "string" && ticketImageUrl.trim().length > 0;
+
+    let normalizedTextColor: "light" | "dark" = "light";
+    if (ticketImageTextColor === "dark") normalizedTextColor = "dark";
+
+    const finalTicketImageUrl = hasTicketImage
+      ? ticketImageUrl.trim()
+      : null;
+    const finalTicketTextColor = hasTicketImage
+      ? normalizedTextColor
+      : null;
+
+    // ---- Validate + normalize external links ----
     const incomingLinks: IncomingLink[] = Array.isArray(rawExternalLinks)
       ? rawExternalLinks
           .map((l) => {
@@ -235,9 +236,7 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // ==================================================
-    // Transaction
-    // ==================================================
+    // ---- Transaction ----
     await db.transaction(async (tx) => {
       // ---- 1. Update event row ----
       await tx
@@ -252,6 +251,9 @@ export async function PUT(req: NextRequest) {
           galleryImages,
           pastEventTitle: normalizedPastTitle,
           pastEventStory: normalizedPastStory,
+          // ⭐ NEW
+          ticketImageUrl: finalTicketImageUrl,
+          ticketImageTextColor: finalTicketTextColor,
           updatedAt: new Date(),
         })
         .where(eq(events.id, eventId));
@@ -273,25 +275,20 @@ export async function PUT(req: NextRequest) {
         }
       }
 
-      // ---- 3. Upsert sequence (only if we have a code) ----
+      // ---- 3. Upsert sequence ----
       if (sequenceCode) {
         if (!existingSeq[0]) {
-          // No row exists yet — insert one
           await tx.insert(eventSequences).values({
             eventId,
             sequenceCode,
           });
         } else if (sequenceCode !== currentCode) {
-          // Row exists but code is changing
           await tx
             .update(eventSequences)
             .set({ sequenceCode })
             .where(eq(eventSequences.eventId, eventId));
         }
-        // else: same code, nothing to do
       }
-      // else: no code available and event has sold tickets — leave the
-      // event_sequences table alone. Tickets already issued keep working.
 
       // ---- 4. Sync external links ----
       const existingLinks = await tx

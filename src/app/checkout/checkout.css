@@ -887,6 +887,20 @@
   margin-bottom: 14px;
 }
 
+.checkout-seats-change{
+  background: var(--color-primary);
+  color: var(--color-text-light);
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+  display: inline-block;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+}
+
 @keyframes checkout-spin {
   to {
     transform: rotate(360deg);

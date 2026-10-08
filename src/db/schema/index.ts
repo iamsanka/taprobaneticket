@@ -14,7 +14,7 @@ import * as orderSequence from "./orderSequence";
 import * as ticketSequence from "./ticketSequence";
 import * as appSettings from "./appSettings";
 
-// ---- New finance tables ----
+// ---- Finance tables ----
 import * as incomes from "./incomes";
 import * as incomeReceipts from "./incomeReceipts";
 import * as expenses from "./expenses";
@@ -23,6 +23,15 @@ import * as paymentMethodCosts from "./paymentMethodCosts";
 import * as emailCampaigns from "./emailCampaigns";
 import * as discountCodes from "./discountCodes";
 import * as discountCodeUses from "./discountCodeUses";
+
+// ⭐ NEW — seating tables
+import * as seatingMaps from "./seatingMaps";
+import * as seatingSections from "./seatingSections";
+import * as seats from "./seats";
+
+// Raffle
+import * as raffles from "./raffles";
+import * as raffleWinners from "./raffleWinners";
 
 /* ============================
    NEON POSTGRES CLIENT
@@ -54,5 +63,13 @@ export const db = drizzle(client, {
     ...expenses,
     ...expensePayments,
     ...paymentMethodCosts,
+    // ⭐ Fixed — these were imported but missing from the registry
+    ...emailCampaigns,
+    ...discountCodes,
+    ...discountCodeUses,
+    // ⭐ NEW
+    ...seatingMaps,
+    ...seatingSections,
+    ...seats,
   },
 });

@@ -78,6 +78,11 @@ export default function SuperAdminLayout({
     pathname?.startsWith("/super-admin/reports/");
   const isEmailsActive = pathname?.startsWith("/super-admin/emails");
   const isDiscountsActive = pathname?.startsWith("/super-admin/discounts");
+  const isSeatingMapsActive = pathname?.startsWith(
+    "/super-admin/seating-maps"
+  );
+  // ⭐ NEW
+  const isRafflesActive = pathname?.startsWith("/super-admin/raffles");
 
   const isFinanceActive = pathname?.startsWith("/super-admin/finance");
   const isFinanceDashboardActive = pathname === "/super-admin/finance";
@@ -148,7 +153,19 @@ export default function SuperAdminLayout({
             {!collapsed && <span>Events</span>}
           </Link>
 
-          {/* 4. Orders */}
+          {/* 4. Seating Maps */}
+          <Link
+            href="/super-admin/seating-maps"
+            className={`sidebar-link ${
+              isSeatingMapsActive ? "active" : ""
+            }`}
+            title={collapsed ? "Seating Maps" : undefined}
+          >
+            <SidebarIcon name="seatingMaps" />
+            {!collapsed && <span>Seating Maps</span>}
+          </Link>
+
+          {/* 5. Orders */}
           {collapsed ? (
             <Link
               href="/super-admin/orders"
@@ -214,7 +231,7 @@ export default function SuperAdminLayout({
             </div>
           )}
 
-          {/* 5. Finance */}
+          {/* 6. Finance */}
           {collapsed ? (
             <Link
               href="/super-admin/finance"
@@ -275,7 +292,7 @@ export default function SuperAdminLayout({
             </div>
           )}
 
-          {/* 6. Emails */}
+          {/* 7. Emails */}
           <Link
             href="/super-admin/emails"
             className={`sidebar-link ${isEmailsActive ? "active" : ""}`}
@@ -285,7 +302,7 @@ export default function SuperAdminLayout({
             {!collapsed && <span>Emails</span>}
           </Link>
 
-          {/* 7. Discounts ← NEW */}
+          {/* 8. Discounts */}
           <Link
             href="/super-admin/discounts"
             className={`sidebar-link ${isDiscountsActive ? "active" : ""}`}
@@ -295,7 +312,17 @@ export default function SuperAdminLayout({
             {!collapsed && <span>Discounts</span>}
           </Link>
 
-          {/* 8. Reports */}
+          {/* ⭐ 9. Raffles — NEW */}
+          <Link
+            href="/super-admin/raffles"
+            className={`sidebar-link ${isRafflesActive ? "active" : ""}`}
+            title={collapsed ? "Raffles" : undefined}
+          >
+            <SidebarIcon name="raffles" />
+            {!collapsed && <span>Raffles</span>}
+          </Link>
+
+          {/* 10. Reports */}
           <Link
             href="/super-admin/reports"
             className={`sidebar-link ${isReportsActive ? "active" : ""}`}
@@ -305,7 +332,7 @@ export default function SuperAdminLayout({
             {!collapsed && <span>Reports</span>}
           </Link>
 
-          {/* 9. Scanner */}
+          {/* 11. Scanner */}
           <Link
             href="/super-admin/scanner"
             className={`sidebar-link ${
@@ -317,7 +344,7 @@ export default function SuperAdminLayout({
             {!collapsed && <span>Scanner</span>}
           </Link>
 
-          {/* 10. Users */}
+          {/* 12. Users */}
           {collapsed ? (
             <Link
               href="/super-admin/users"
@@ -370,7 +397,7 @@ export default function SuperAdminLayout({
             </div>
           )}
 
-          {/* 11. Settings */}
+          {/* 13. Settings */}
           <Link
             href="/super-admin/settings"
             className={`sidebar-link ${isSettingsActive ? "active" : ""}`}
@@ -433,6 +460,8 @@ function SidebarIcon({
     | "discounts"
     | "events"
     | "categories"
+    | "seatingMaps"
+    | "raffles"
     | "users"
     | "settings"
     | "logout";
@@ -500,7 +529,6 @@ function SidebarIcon({
         </svg>
       );
     case "discounts":
-      // Ticket-tag icon
       return (
         <svg {...common}>
           <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
@@ -521,6 +549,27 @@ function SidebarIcon({
         <svg {...common}>
           <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
           <line x1="7" y1="7" x2="7.01" y2="7" />
+        </svg>
+      );
+    case "seatingMaps":
+      return (
+        <svg {...common}>
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+      );
+    case "raffles":
+      // ⭐ Trophy icon
+      return (
+        <svg {...common}>
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+          <path d="M4 22h16" />
+          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
         </svg>
       );
     case "users":

@@ -1,4 +1,4 @@
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, inArray, or } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { orders } from "@/db/schema/orders";
 import { orderTickets } from "@/db/schema/orderTickets";
@@ -6,6 +6,7 @@ import { events } from "@/db/schema/events";
 import { ticketTypes } from "@/db/schema/ticketTypes";
 import { ticketCategories } from "@/db/schema/ticketCategories";
 import { eventTickets } from "@/db/schema/eventTickets";
+import { seats } from "@/db/schema/seats";
 import { generateQrCode } from "@/lib/qr/generateQrCode";
 import { signTicketQr } from "@/lib/qr/signQrPayload";
 import { generateTicketPdf } from "@/lib/pdf/generateTicketPdf";
@@ -25,6 +26,20 @@ export type FinalizeResult =
  * - Normal mode: idempotent, one caller wins the atomic claim.
  * - forceResend mode: skips the claim, re-sends for an order that's already
  *   been paid. Used by the admin "Resend Ticket Email" button.
+ *
+ * ⭐ NEW — seat booking:
+ *   For seated orders (card flow), any seats held by the customer are
+ *   converted to permanently booked here. The booking is conditional
+ *   (`booked_order_id IS NULL OR = $orderId`) so re-runs are idempotent.
+ *   If a seat was re-claimed by another customer between PI creation
+ *   and webhook delivery (rare — hold is 30 min), we log a conflict
+ *   and proceed: the customer paid, and failing the webhook would
+ *   just cause infinite Stripe retries. An admin must intervene.
+ *
+ *   The BENEFIT flow books seats at order creation (see
+ *   /api/checkout/benefit), so by the time finalizeOrder runs on a
+ *   benefit order the seats are already booked. The conditional
+ *   UPDATE is a no-op in that case.
  */
 export async function finalizeOrder(
   orderId: number,
@@ -68,9 +83,72 @@ export async function finalizeOrder(
   }
 
   try {
+    // ==================================================
+    // ⭐ NEW — BOOK SEATS (card flow only)
+    // ==================================================
+    // Skip on forceResend: seats are already booked, nothing to do.
+    // Skip when the order has no seats (GA tickets).
+    if (!forceResend) {
+      const ticketSeatRows = await db
+        .select({ seatId: orderTickets.seatId })
+        .from(orderTickets)
+        .where(
+          and(
+            eq(orderTickets.orderId, order.id),
+            isNotNull(orderTickets.seatId)
+          )
+        );
+
+      const seatIds = ticketSeatRows
+        .map((r) => r.seatId)
+        .filter((id): id is number => id !== null);
+
+      if (seatIds.length > 0) {
+        // Conditional booking: only book if the seat is either free
+        // (not booked) OR already booked by THIS order (idempotent
+        // retry). This is the atomic operation that prevents a
+        // "second customer steals the seat" race.
+        const booked = await db
+          .update(seats)
+          .set({
+            bookedOrderId: order.id,
+            heldByToken: null,
+            holdExpiresAt: null,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              inArray(seats.id, seatIds),
+              or(
+                isNull(seats.bookedOrderId),
+                eq(seats.bookedOrderId, order.id)
+              )
+            )
+          )
+          .returning({ id: seats.id });
+
+        if (booked.length !== seatIds.length) {
+          // ⚠️ Rare race: hold expired between PI creation and webhook,
+          // and another customer claimed the seat. Log loudly — this
+          // is greppable for ops. Do NOT throw: the customer paid, and
+          // failing here just makes Stripe retry forever.
+          const bookedSet = new Set(booked.map((b) => b.id));
+          const lostSeatIds = seatIds.filter((id) => !bookedSet.has(id));
+          console.error(
+            `[finalizeOrder] ⚠️ SEAT CONFLICT for order ${order.orderNumber} (id ${order.id}): ` +
+              `${booked.length}/${seatIds.length} seats booked. ` +
+              `Lost seat IDs: [${lostSeatIds.join(", ")}]. ` +
+              `Manual admin review required (refund or reseat).`
+          );
+        } else {
+          console.log(
+            `finalizeOrder: booked ${booked.length} seat(s) for order ${order.orderNumber}`
+          );
+        }
+      }
+    }
+
     // ---- Load settings once — used by both PDFs ----
-    // Single cached read; subsequent calls in the same request window hit
-    // memory, not the DB.
     const settings = await getSettings();
 
     // ---- Load tickets with category + type names ----
@@ -82,6 +160,7 @@ export async function finalizeOrder(
         ticketTypeId: orderTickets.ticketTypeId,
         categoryName: ticketCategories.name,
         typeName: ticketTypes.name,
+        seatLabel: orderTickets.seatLabel,
       })
       .from(orderTickets)
       .leftJoin(ticketTypes, eq(orderTickets.ticketTypeId, ticketTypes.id))
@@ -124,12 +203,14 @@ export async function finalizeOrder(
       eventTitle: eventRow.title,
       eventTime: eventRow.eventTime,
       eventLocation: eventRow.location,
-      brandName: settings.brandName,   // ⭐ from settings
+      brandName: settings.brandName,
+       // ⭐ NEW — pass ticket design through to the PDF
+      ticketImageUrl: eventRow.ticketImageUrl ?? undefined,
+      ticketImageTextColor:
+        (eventRow.ticketImageTextColor as "light" | "dark" | null) ?? undefined,
     };
 
     // ---- One PDF per ticket ----
-    // QR encodes a signed payload:
-    //   <ticketNumber>.<hmac>
     const attachments = await Promise.all(
       ticketRows.map(async (t) => {
         const signedPayload = signTicketQr(t.ticketNumber);
@@ -140,6 +221,8 @@ export async function finalizeOrder(
           qrDataUrl: qr.dataUrl,
           categoryName: t.categoryName ?? undefined,
           typeName: t.typeName ?? undefined,
+          seatLabel: t.seatLabel ?? undefined,
+          unitPrice: priceByTypeId.get(t.ticketTypeId) ?? undefined,
         });
 
         return {
@@ -184,8 +267,8 @@ export async function finalizeOrder(
       eventLocation: eventRow.location,
       lineItems,
       total: order.totalPrice,
-      vatRatePercent: settings.vatRatePercent,   // ⭐ from settings
-      brandName: settings.brandName,             // ⭐ from settings
+      vatRatePercent: settings.vatRatePercent,
+      brandName: settings.brandName,
     });
 
     // ---- Send email ----

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq, and, isNull, sql, or } from "drizzle-orm";
+import { eq, and, isNull, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { orders } from "@/db/schema/orders";
 import { orderTickets } from "@/db/schema/orderTickets";
@@ -10,6 +10,9 @@ import { ticketTypes } from "@/db/schema/ticketTypes";
 import { eventTickets } from "@/db/schema/eventTickets";
 import { discountCodes } from "@/db/schema/discountCodes";
 import { discountCodeUses } from "@/db/schema/discountCodeUses";
+import { seatingMaps } from "@/db/schema/seatingMaps";
+import { seatingSections } from "@/db/schema/seatingSections";
+import { seats } from "@/db/schema/seats";
 
 /* ======================================================
    Apply a discount code to an amount.
@@ -37,6 +40,9 @@ export async function POST(req: Request) {
       idempotencyKey,
       // ⭐ NEW: optional discount code
       discountCode: rawDiscountCode,
+      // ⭐ NEW — seat selection
+      seatToken: rawSeatToken,
+      seatIds: rawSeatIds,
     } = body;
 
     if (method !== "epassi" && method !== "edenred") {
@@ -58,11 +64,8 @@ export async function POST(req: Request) {
     const sentinel = `benefit_${method}_${idempotencyKey}`;
 
     // ==================================================
-    // IDEMPOTENCY CHECK — return existing order if we've seen this key.
+    // IDEMPOTENCY CHECK
     // ==================================================
-    // NOTE: we return BEFORE the discount claim, because the order is
-    // already created — its discount slot is already claimed. Re-claiming
-    // would double-count.
     const [existing] = await db
       .select()
       .from(orders)
@@ -88,6 +91,7 @@ export async function POST(req: Request) {
     // ==================================================
     type ValidatedItem = {
       typeId: number;
+      categoryId: number; // ⭐ NEW — needed for seat assignment
       eventId: number;
       quantity: number;
       price: number;
@@ -147,6 +151,7 @@ export async function POST(req: Request) {
 
       validatedItems.push({
         typeId: item.typeId,
+        categoryId: ticketType.categoryId, // ⭐
         eventId: item.eventId,
         quantity: item.quantity,
         price: eventTicket.price,
@@ -154,6 +159,198 @@ export async function POST(req: Request) {
     }
 
     const eventId = validatedItems[0].eventId;
+
+    // ==================================================
+    // ⭐ VALIDATE + BOOK SEAT HOLDS (if provided)
+    // ==================================================
+    // For the benefit flow, seats are BOOKED here (not just held).
+    // Rationale: the admin will confirm payment manually hours later,
+    // and we can't keep the seats held for that long. Instead, we
+    // reserve them outright; if the order is later cancelled, the
+    // cancel flow releases them.
+    //
+    // v1 constraint: one seated category per order.
+    let seatAssignments: Array<{
+      seatId: number;
+      seatLabel: string;
+      categoryId: number;
+    }> = [];
+
+    const hasSeats = Array.isArray(rawSeatIds) && rawSeatIds.length > 0;
+
+    if (hasSeats) {
+      if (typeof rawSeatToken !== "string" || rawSeatToken.length < 8) {
+        return NextResponse.json(
+          {
+            error: "seatToken is required when seatIds are provided",
+            code: "MISSING_SEAT_TOKEN",
+          },
+          { status: 400 }
+        );
+      }
+
+      const seatIdSet = new Set<number>();
+      for (const raw of rawSeatIds) {
+        const n = Number(raw);
+        if (!Number.isInteger(n) || n <= 0) {
+          return NextResponse.json(
+            {
+              error: "seatIds must contain positive integers",
+              code: "INVALID_SEATS",
+            },
+            { status: 400 }
+          );
+        }
+        seatIdSet.add(n);
+      }
+      const seatIds = Array.from(seatIdSet);
+
+      const seatRows = await db
+        .select()
+        .from(seats)
+        .where(inArray(seats.id, seatIds));
+
+      if (seatRows.length !== seatIds.length) {
+        return NextResponse.json(
+          {
+            error: "One or more seats no longer exist",
+            code: "SEAT_UNAVAILABLE",
+          },
+          { status: 409 }
+        );
+      }
+
+      const uniqueMapIds = new Set(seatRows.map((s) => s.mapId));
+      if (uniqueMapIds.size !== 1) {
+        return NextResponse.json(
+          {
+            error: "All seats must belong to the same seating map",
+            code: "SEATS_DIFFERENT_MAPS",
+          },
+          { status: 400 }
+        );
+      }
+      const seatMapId = seatRows[0].mapId;
+
+      const [seatMap] = await db
+        .select()
+        .from(seatingMaps)
+        .where(eq(seatingMaps.id, seatMapId));
+
+      if (!seatMap || seatMap.eventId !== eventId) {
+        return NextResponse.json(
+          {
+            error: "Seats do not belong to this event",
+            code: "SEATS_WRONG_EVENT",
+          },
+          { status: 400 }
+        );
+      }
+
+      const seatedCategoryId = seatMap.categoryId;
+
+      const expectedSeats = validatedItems
+        .filter((i) => i.categoryId === seatedCategoryId)
+        .reduce((sum, i) => sum + i.quantity, 0);
+
+      if (expectedSeats === 0) {
+        return NextResponse.json(
+          {
+            error: "Cart contains no tickets for the seating category",
+            code: "SEATS_NO_MATCHING_ITEMS",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (expectedSeats !== seatIds.length) {
+        return NextResponse.json(
+          {
+            error: `Expected ${expectedSeats} ${
+              expectedSeats === 1 ? "seat" : "seats"
+            } for this order, but received ${seatIds.length}.`,
+            code: "SEATS_COUNT_MISMATCH",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Every seat must be held by this token and still valid
+      const now = new Date();
+      for (const s of seatRows) {
+        if (s.isBlocked) {
+          return NextResponse.json(
+            {
+              error: "One or more selected seats are no longer available",
+              code: "SEAT_UNAVAILABLE",
+              unavailableSeatIds: [s.id],
+            },
+            { status: 409 }
+          );
+        }
+        if (s.bookedOrderId !== null) {
+          return NextResponse.json(
+            {
+              error: "One or more selected seats have already been booked",
+              code: "SEAT_UNAVAILABLE",
+              unavailableSeatIds: [s.id],
+            },
+            { status: 409 }
+          );
+        }
+        if (s.heldByToken !== rawSeatToken) {
+          return NextResponse.json(
+            {
+              error:
+                "Your seat hold has expired or was released. Please select seats again.",
+              code: "SEAT_EXPIRED",
+              unavailableSeatIds: [s.id],
+            },
+            { status: 409 }
+          );
+        }
+        if (!s.holdExpiresAt || s.holdExpiresAt <= now) {
+          return NextResponse.json(
+            {
+              error:
+                "Your seat hold has expired. Please select seats again.",
+              code: "SEAT_EXPIRED",
+            },
+            { status: 409 }
+          );
+        }
+      }
+
+      // Fetch labels for snapshotting
+      const seatLabelsRaw = await db
+        .select({
+          seatId: seats.id,
+          rowLabel: seats.rowLabel,
+          numberLabel: seats.numberLabel,
+          sectionLabel: seatingSections.label,
+        })
+        .from(seats)
+        .leftJoin(seatingSections, eq(seatingSections.id, seats.sectionId))
+        .where(inArray(seats.id, seatIds));
+
+      const totalSectionsInMap = await db
+        .select({ id: seatingSections.id })
+        .from(seatingSections)
+        .where(eq(seatingSections.mapId, seatMapId));
+      const multiSection = totalSectionsInMap.length > 1;
+      const singleMain =
+        totalSectionsInMap.length === 1 &&
+        (seatLabelsRaw[0]?.sectionLabel ?? "").toLowerCase() === "main";
+      const hidePrefix = !multiSection || singleMain;
+
+      seatAssignments = seatLabelsRaw.map((r) => ({
+        seatId: r.seatId,
+        seatLabel: hidePrefix
+          ? `${r.rowLabel}${r.numberLabel}`
+          : `${r.sectionLabel ?? "?"}-${r.rowLabel}${r.numberLabel}`,
+        categoryId: seatedCategoryId,
+      }));
+    }
 
     // ==================================================
     // SUBTOTAL + DISCOUNT
@@ -214,7 +411,6 @@ export async function POST(req: Request) {
         );
       }
 
-      // ---- Atomic claim ----
       const claimed = await db
         .update(discountCodes)
         .set({
@@ -291,7 +487,7 @@ export async function POST(req: Request) {
     const orderNumber = `${sequenceCode}${orderNoFormatted}`;
 
     // ==================================================
-    // INSERT ORDER
+    // INSERT ORDER (with race-safe retry)
     // ==================================================
     let orderRow;
     try {
@@ -304,7 +500,7 @@ export async function POST(req: Request) {
           customerName,
           customerEmail,
           customerPhone,
-          totalPrice: finalAmount, // ⭐ discounted total
+          totalPrice: finalAmount,
           stripePaymentIntentId: sentinel,
           status: "pending_benefit",
           discountCode: discountCodeString,
@@ -312,8 +508,6 @@ export async function POST(req: Request) {
         })
         .returning();
     } catch (err) {
-      // Race condition: another request inserted with the same sentinel
-      // between our SELECT and INSERT. Re-query and return it.
       console.warn(
         `Benefit checkout: insert raced, re-querying for ${sentinel}`
       );
@@ -351,8 +545,71 @@ export async function POST(req: Request) {
     }
 
     // ==================================================
+    // ⭐ BOOK SEATS (atomic, conditional)
+    // ==================================================
+    // We book the seats against this order now. The WHERE clause
+    // re-verifies the hold is still ours at write time, so a
+    // concurrent expiry/re-hold by another customer can't slip in.
+    if (hasSeats && seatAssignments.length > 0) {
+      const booked = await db
+        .update(seats)
+        .set({
+          bookedOrderId: orderRow.id,
+          heldByToken: null,
+          holdExpiresAt: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            inArray(
+              seats.id,
+              seatAssignments.map((s) => s.seatId)
+            ),
+            eq(seats.heldByToken, rawSeatToken as string)
+          )
+        )
+        .returning({ id: seats.id });
+
+      if (booked.length !== seatAssignments.length) {
+        // We lost the race — someone re-held or the hold expired in
+        // the millisecond between validation and this UPDATE.
+        // Roll back by deleting the order + tickets we just made.
+        //
+        // Note: since everything else already ran, a full rollback
+        // here is done manually. An alternative is to wrap the whole
+        // handler in a transaction, but that would also wrap the
+        // Stripe-less multi-step flow and complicate things. Given
+        // the rarity, manual cleanup is acceptable.
+        console.error(
+          `[benefit] seat booking race: booked ${booked.length} of ${seatAssignments.length}`
+        );
+
+        // Delete the just-created tickets + order
+        await db
+          .delete(orderTickets)
+          .where(eq(orderTickets.orderId, orderRow.id));
+        await db.delete(orders).where(eq(orders.id, orderRow.id));
+
+        return NextResponse.json(
+          {
+            error:
+              "Your seat hold expired during checkout. Please select seats again.",
+            code: "SEAT_EXPIRED",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    // ==================================================
     // CREATE TICKETS
     // ==================================================
+    const seatQueue = seatAssignments.map((s) => ({
+      seatId: s.seatId,
+      seatLabel: s.seatLabel,
+    }));
+    let seatIndex = 0;
+
     for (const item of validatedItems) {
       for (let i = 0; i < item.quantity; i++) {
         const [ticketSeq] = await db
@@ -379,6 +636,21 @@ export async function POST(req: Request) {
           ticketNumber,
         });
 
+        // ⭐ Attach a seat if this item belongs to the seated category
+        let seatId: number | null = null;
+        let seatLabel: string | null = null;
+        if (
+          seatAssignments.length > 0 &&
+          item.categoryId === seatAssignments[0].categoryId
+        ) {
+          const slot = seatQueue[seatIndex];
+          if (slot) {
+            seatId = slot.seatId;
+            seatLabel = slot.seatLabel;
+            seatIndex++;
+          }
+        }
+
         await db.insert(orderTickets).values({
           orderId: orderRow.id,
           eventId,
@@ -386,6 +658,8 @@ export async function POST(req: Request) {
           ticketNumber,
           qrCodeData: payload,
           isScanned: false,
+          seatId,
+          seatLabel,
         });
       }
     }

@@ -34,6 +34,7 @@ export async function GET(
       .select({
         id: eventTickets.id,
         ticketTypeId: eventTickets.typeId,
+        categoryId: eventTickets.categoryId,
         categoryName: ticketCategories.name,
         typeName: ticketTypes.name,
         price: eventTickets.price,

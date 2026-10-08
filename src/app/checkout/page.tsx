@@ -9,6 +9,9 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import SeatPicker, {
+  type SeatSelection,
+} from "@/components/SeatPicker";
 import "./checkout.css";
 
 const stripePromise = loadStripe(
@@ -17,6 +20,7 @@ const stripePromise = loadStripe(
 
 type CartItem = {
   typeId: number;
+  categoryId: number; // ⭐ NEW — required for seat-map lookup
   quantity: number;
   price: number;
   categoryName: string;
@@ -30,6 +34,15 @@ type PaymentMethod = "card" | "epassi" | "edenred";
 type AppliedDiscount = {
   code: string;
   percentage: number;
+};
+
+// ⭐ NEW — one entry per seated category detected in the cart
+type SeatedCategory = {
+  categoryId: number;
+  categoryName: string;
+  mapId: number;
+  mapName: string;
+  expectedCount: number; // sum of quantities in the cart for this category
 };
 
 // Only used for the summary hint — the invoice uses the authoritative value
@@ -149,6 +162,16 @@ export default function CheckoutPage() {
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [discountLoading, setDiscountLoading] = useState(false);
 
+  // ⭐ NEW — seat-selection state
+  const [seatedCategories, setSeatedCategories] = useState<
+    SeatedCategory[] | null
+  >(null);
+  const [checkingSeats, setCheckingSeats] = useState(true);
+  const [seatPickerOpen, setSeatPickerOpen] = useState(false);
+  const [seatSelection, setSeatSelection] = useState<SeatSelection | null>(
+    null
+  );
+
   useEffect(() => {
     const stored = localStorage.getItem("cart");
     if (stored) {
@@ -160,6 +183,88 @@ export default function CheckoutPage() {
     }
     setLoading(false);
   }, []);
+
+  // ⭐ NEW — after cart loads, figure out which categories need seats
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      setCheckingSeats(false);
+      setSeatedCategories([]);
+      return;
+    }
+
+    const eventId = cartItems[0].eventId;
+
+    // Group quantities by categoryId
+    const byCategory = new Map<
+      number,
+      { categoryId: number; categoryName: string; quantity: number }
+    >();
+    for (const item of cartItems) {
+      if (typeof item.categoryId !== "number") {
+        // Cart item is missing categoryId — patch your cart-add code.
+        console.warn(
+          "[checkout] CartItem missing categoryId. Seat selection disabled."
+        );
+        continue;
+      }
+      const entry = byCategory.get(item.categoryId) ?? {
+        categoryId: item.categoryId,
+        categoryName: item.categoryName,
+        quantity: 0,
+      };
+      entry.quantity += item.quantity;
+      byCategory.set(item.categoryId, entry);
+    }
+
+    if (byCategory.size === 0) {
+      setCheckingSeats(false);
+      setSeatedCategories([]);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setCheckingSeats(true);
+      try {
+        const results = await Promise.all(
+          Array.from(byCategory.values()).map(async (cat) => {
+            try {
+              const res = await fetch(
+                `/api/public/seats/availability?eventId=${eventId}&categoryId=${cat.categoryId}`,
+                { cache: "no-store" }
+              );
+              if (!res.ok) return null;
+              const data = await res.json();
+              if (!data.hasSeating) return null;
+              return {
+                categoryId: cat.categoryId,
+                categoryName: cat.categoryName,
+                mapId: data.map.id as number,
+                mapName: data.map.name as string,
+                expectedCount: cat.quantity,
+              } satisfies SeatedCategory;
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        if (cancelled) return;
+        setSeatedCategories(
+          results.filter((r) => r !== null) as SeatedCategory[]
+        );
+      } catch (err) {
+        console.error("Seat check error:", err);
+        if (!cancelled) setSeatedCategories([]);
+      } finally {
+        if (!cancelled) setCheckingSeats(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cartItems]);
 
   // ⭐ Totals — always derived from cart + appliedDiscount
   const { totalQuantity, subtotal, discountAmount, finalTotal, vatAmount } =
@@ -186,6 +291,28 @@ export default function CheckoutPage() {
         vatAmount: Math.round(final * VAT_RATE_OF_GROSS),
       };
     }, [cartItems, appliedDiscount]);
+
+  // ⭐ NEW — seat-derived state
+  const singleSeatedCategory =
+    seatedCategories && seatedCategories.length === 1
+      ? seatedCategories[0]
+      : null;
+  const multipleSeatedCategories =
+    seatedCategories !== null && seatedCategories.length > 1;
+
+  const seatsSatisfied =
+    !singleSeatedCategory ||
+    (seatSelection !== null &&
+      seatSelection.seatIds.length === singleSeatedCategory.expectedCount);
+
+  function handleSeatSelectionChange(sel: SeatSelection | null) {
+    setSeatSelection(sel);
+  }
+
+  function handleSeatConfirm(sel: SeatSelection) {
+    setSeatSelection(sel);
+    setSeatPickerOpen(false);
+  }
 
   function validate(): boolean {
     const next: typeof errors = {};
@@ -255,6 +382,20 @@ export default function CheckoutPage() {
   async function handleContinue() {
     if (!validate()) return;
 
+    // ⭐ Seat gate
+    if (multipleSeatedCategories) {
+      alert(
+        "This order contains more than one seated category.\n\n" +
+          "Please place separate orders for each seated category."
+      );
+      return;
+    }
+    if (singleSeatedCategory && !seatsSatisfied) {
+      // Open the picker so the customer can finish selecting
+      setSeatPickerOpen(true);
+      return;
+    }
+
     localStorage.setItem(
       "checkoutCustomer",
       JSON.stringify({ name, email, phone })
@@ -268,6 +409,16 @@ export default function CheckoutPage() {
       );
     } else {
       localStorage.removeItem("checkoutDiscountCode");
+    }
+
+    // ⭐ Persist seat selection for benefit-flow pages
+    if (seatSelection) {
+      localStorage.setItem(
+        "checkoutSeatSelection",
+        JSON.stringify(seatSelection)
+      );
+    } else {
+      localStorage.removeItem("checkoutSeatSelection");
     }
 
     if (paymentMethod === "card") {
@@ -292,14 +443,24 @@ export default function CheckoutPage() {
           cartItems,
           // ⭐ Optional — server re-validates and claims the usage slot
           discountCode: appliedDiscount?.code ?? null,
+          // ⭐ NEW — seat hold
+          seatToken: seatSelection?.token ?? null,
+          seatIds: seatSelection?.seatIds ?? null,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        // Server may reject the code (exhausted / expired between validate
-        // and continue). Surface the message and keep the input visible.
+        // If the server rejects because seats were taken, clear the
+        // local selection so the customer re-picks.
+        if (
+          data.code === "SEAT_UNAVAILABLE" ||
+          data.code === "SEAT_EXPIRED"
+        ) {
+          setSeatSelection(null);
+          setSeatPickerOpen(true);
+        }
         alert(data.error || "Checkout failed");
         return;
       }
@@ -316,7 +477,7 @@ export default function CheckoutPage() {
   // ==================================================
   // Loading
   // ==================================================
-  if (loading) {
+  if (loading || checkingSeats) {
     return (
       <div className="checkout-page">
         <div className="checkout-state">
@@ -468,6 +629,59 @@ export default function CheckoutPage() {
                 </div>
               </section>
 
+              {/* ⭐ NEW — Seats card (only if a seated category is in cart) */}
+              {singleSeatedCategory && (
+                <section className="checkout-card">
+                  <div className="checkout-card-header">
+                    <h2 className="checkout-card-title">
+                      Seats · {singleSeatedCategory.categoryName}
+                    </h2>
+                    <p className="checkout-card-subtitle">
+                      Pick {singleSeatedCategory.expectedCount}{" "}
+                      {singleSeatedCategory.expectedCount === 1
+                        ? "seat"
+                        : "seats"}{" "}
+                      from {singleSeatedCategory.mapName}
+                    </p>
+                  </div>
+
+                  {seatSelection && seatsSatisfied ? (
+                    <div className="checkout-seats-applied">
+                      <div className="checkout-seats-list">
+                        {seatSelection.seats.map((s) => (
+                          <span key={s.id} className="checkout-seat-chip">
+                            {s.label}
+                          </span>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        className="checkout-seats-change"
+                        onClick={() => setSeatPickerOpen(true)}
+                      >
+                        Change seats
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="checkout-primary-btn"
+                      onClick={() => setSeatPickerOpen(true)}
+                    >
+                      Select seats
+                      <ArrowRightIcon />
+                    </button>
+                  )}
+                </section>
+              )}
+
+              {multipleSeatedCategories && (
+                <div className="checkout-seats-error">
+                  ⚠️ This order contains more than one seated category.
+                  Please place separate orders for each seated category.
+                </div>
+              )}
+
               {/* ---- Payment Method ---- */}
               <section className="checkout-card">
                 <div className="checkout-card-header">
@@ -538,10 +752,12 @@ export default function CheckoutPage() {
                 <button
                   className="checkout-primary-btn"
                   onClick={handleContinue}
-                  disabled={submitting}
+                  disabled={submitting || multipleSeatedCategories}
                 >
                   {submitting
                     ? "Please wait…"
+                    : singleSeatedCategory && !seatsSatisfied
+                    ? "Select seats to continue"
                     : paymentMethod === "card"
                     ? "Continue to Payment"
                     : paymentMethod === "epassi"
@@ -585,6 +801,25 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
+
+            {/* ⭐ NEW — selected seats */}
+            {seatSelection && seatSelection.seats.length > 0 && (
+              <>
+                <div className="checkout-summary-divider" />
+                <div className="checkout-summary-seats">
+                  <span className="checkout-summary-seats-label">
+                    Your seats
+                  </span>
+                  <div className="checkout-summary-seats-list">
+                    {seatSelection.seats.map((s) => (
+                      <span key={s.id} className="checkout-seat-chip-sm">
+                        {s.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="checkout-summary-divider" />
 
@@ -710,6 +945,20 @@ export default function CheckoutPage() {
           </div>
         </aside>
       </div>
+
+      {/* ⭐ NEW — Seat picker modal */}
+      {seatPickerOpen && singleSeatedCategory && (
+        <SeatPicker
+          eventId={cartItems[0].eventId}
+          categoryId={singleSeatedCategory.categoryId}
+          categoryName={singleSeatedCategory.categoryName}
+          expectedCount={singleSeatedCategory.expectedCount}
+          resume={seatSelection}
+          onChange={handleSeatSelectionChange}
+          onConfirm={handleSeatConfirm}
+          onClose={() => setSeatPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }

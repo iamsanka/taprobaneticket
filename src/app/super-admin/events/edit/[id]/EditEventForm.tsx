@@ -22,6 +22,10 @@ type FormState = {
   // ⭐ Past event showcase
   pastEventTitle: string;
   pastEventStory: string;
+
+  // ⭐ NEW — ticket design
+  ticketImageUrl: string;
+  ticketImageTextColor: "light" | "dark";
 };
 
 type ExternalLinkType =
@@ -174,6 +178,32 @@ export default function EditEventForm({
     setForm({ ...form, galleryImages: updated });
   }
 
+  // ⭐ NEW — Ticket design upload
+  async function handleTicketImageUpload(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadToCloudinary(file);
+      setForm({ ...form, ticketImageUrl: url });
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removeTicketImage() {
+    setForm({
+      ...form,
+      ticketImageUrl: "",
+      ticketImageTextColor: "light",
+    });
+  }
+
   // ---- Ticket toggles ----
   function toggleCategory(categoryId: number) {
     if (selectedCategories.includes(categoryId)) {
@@ -255,7 +285,6 @@ export default function EditEventForm({
 
     const updated = [...externalLinks];
     [updated[idx], updated[newIdx]] = [updated[newIdx], updated[idx]];
-    // Reset sortOrder based on new positions
     updated.forEach((l, i) => (l.sortOrder = i));
     setExternalLinks(updated);
   }
@@ -307,7 +336,6 @@ export default function EditEventForm({
       }
     }
 
-    // ---- External link validation ----
     const linksWithAnyContent = externalLinks.filter(
       (l) => l.label.trim() || l.url.trim()
     );
@@ -333,7 +361,6 @@ export default function EditEventForm({
 
   function handleSave() {
     if (!validate()) return;
-    // Clean links: drop empty rows before saving
     const cleaned = externalLinks
       .filter((l) => l.label.trim() && l.url.trim())
       .map((l, i) => ({ ...l, sortOrder: i }));
@@ -1001,6 +1028,156 @@ export default function EditEventForm({
               )}
             </div>
           </section>
+
+          {/* ---- ⭐ STEP 4: Ticket Design ---- */}
+          <section className="edit-card edit-card-ticket-design">
+            <div className="edit-card-header">
+              <span className="edit-step edit-step-ticket">
+                <TicketIcon />
+              </span>
+              <div>
+                <h2 className="edit-card-title">Ticket Design</h2>
+                <p className="edit-card-subtitle">
+                  Upload a portrait background image for the printed ticket
+                  PDF. Leave empty to use the default white ticket.
+                </p>
+              </div>
+            </div>
+
+            <div className="edit-field">
+              <label className="edit-label">
+                Ticket background image
+                <span className="edit-label-note"> — portrait, A5 ratio</span>
+              </label>
+
+              {form.ticketImageUrl ? (
+                <div className="edit-ticket-image-set">
+                  <div className="edit-ticket-image-thumb">
+                    <img
+                      src={form.ticketImageUrl}
+                      alt="Ticket background"
+                    />
+                  </div>
+                  <div className="edit-ticket-image-actions">
+                    <label className="edit-ticket-change-btn">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleTicketImageUpload}
+                        hidden
+                      />
+                      <UploadIcon />
+                      Replace image
+                    </label>
+                    <button
+                      type="button"
+                      className="edit-dropzone-remove"
+                      onClick={removeTicketImage}
+                    >
+                      <TrashIcon />
+                      Remove image
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="edit-dropzone edit-dropzone-ticket">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleTicketImageUpload}
+                    hidden
+                  />
+                  <div className="edit-dropzone-empty">
+                    <TicketIcon />
+                    <span className="edit-dropzone-title">
+                      Click to upload ticket background
+                    </span>
+                    <span className="edit-dropzone-hint">
+                      Portrait image — recommended 2:3 or A5 (e.g. 1000 × 1414)
+                    </span>
+                  </div>
+                </label>
+              )}
+            </div>
+
+            {/* Text color toggle — only meaningful when image is set */}
+            {form.ticketImageUrl && (
+              <div className="edit-field">
+                <label className="edit-label">
+                  Text color on the ticket
+                  <span className="edit-label-note">
+                    {" "}
+                    — pick the one that reads best on your image
+                  </span>
+                </label>
+
+                <div className="edit-color-options">
+                  <button
+                    type="button"
+                    className={`edit-color-card ${
+                      form.ticketImageTextColor === "light" ? "selected" : ""
+                    }`}
+                    onClick={() =>
+                      setForm({ ...form, ticketImageTextColor: "light" })
+                    }
+                  >
+                    <div className="edit-color-swatch edit-color-swatch-dark">
+                      <span>Aa</span>
+                    </div>
+                    <div>
+                      <div className="edit-color-label">Light text</div>
+                      <div className="edit-color-desc">
+                        White text + dark scrim — best on dark images
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`edit-color-card ${
+                      form.ticketImageTextColor === "dark" ? "selected" : ""
+                    }`}
+                    onClick={() =>
+                      setForm({ ...form, ticketImageTextColor: "dark" })
+                    }
+                  >
+                    <div className="edit-color-swatch edit-color-swatch-light">
+                      <span>Aa</span>
+                    </div>
+                    <div>
+                      <div className="edit-color-label">Dark text</div>
+                      <div className="edit-color-desc">
+                        Dark text + light scrim — best on bright images
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                <span className="edit-hint">
+                  We layer a subtle scrim over the image to keep the text
+                  readable regardless.
+                </span>
+              </div>
+            )}
+
+            {/* Live ticket preview */}
+            <div className="edit-field">
+              <label className="edit-label">Preview</label>
+              <TicketDesignPreview
+                imageUrl={form.ticketImageUrl}
+                textColor={form.ticketImageTextColor}
+                eventTitle={form.title}
+                eventTime={form.eventTime}
+                eventLocation={form.location}
+                categories={categories}
+                eventTickets={eventTickets}
+              />
+              <span className="edit-hint">
+                Approximate preview. The actual PDF keeps the QR code in the
+                same position.
+              </span>
+            </div>
+          </section>
         </div>
 
         {/* ============================================ */}
@@ -1125,6 +1302,111 @@ export default function EditEventForm({
 }
 
 // ======================================================
+// ⭐ Ticket design preview (portrait)
+// ======================================================
+
+function TicketDesignPreview({
+  imageUrl,
+  textColor,
+  eventTitle,
+  eventTime,
+  eventLocation,
+  categories,
+  eventTickets,
+}: {
+  imageUrl: string;
+  textColor: "light" | "dark";
+  eventTitle: string;
+  eventTime: string;
+  eventLocation: string;
+  categories: Category[];
+  eventTickets: SelectedTicket[];
+}) {
+  const first = eventTickets[0];
+  const cat = categories.find((c) => c.id === first?.categoryId);
+  const type = cat?.ticketTypes.find((t) => t.id === first?.typeId);
+
+  const isLight = textColor === "light";
+  const scrim = isLight
+    ? "linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.42))"
+    : "linear-gradient(rgba(255,255,255,0.4), rgba(255,255,255,0.4))";
+
+  return (
+    <div className="tdp-wrap">
+      <div className="tdp-page">
+        {imageUrl ? (
+          <div
+            className="tdp-bg"
+            style={{ backgroundImage: `url(${imageUrl})` }}
+          />
+        ) : (
+          <div className="tdp-bg tdp-bg-empty" />
+        )}
+
+        {imageUrl && (
+          <div className="tdp-scrim" style={{ background: scrim }} />
+        )}
+
+        <div
+          className={`tdp-content ${
+            isLight ? "tdp-content-light" : "tdp-content-dark"
+          } ${imageUrl ? "tdp-content-photo" : "tdp-content-classic"}`}
+        >
+          {/* Header */}
+          <div className="tdp-header">
+            <div className="tdp-brand">TaprobaneTicket</div>
+            {cat && <div className="tdp-badge">{cat.name.toUpperCase()}</div>}
+          </div>
+          {type && <div className="tdp-type">{type.name}</div>}
+
+          <div className="tdp-divider" />
+
+          {/* Title */}
+          <div className="tdp-title-row">
+            <div className="tdp-title-bar" />
+            <div className="tdp-title">{eventTitle || "Event title"}</div>
+          </div>
+
+          {/* Details grid */}
+          <div className="tdp-grid">
+            <div className="tdp-cell">
+              <div className="tdp-label">EVENT DATE & TIME</div>
+              <div className="tdp-value">{eventTime || "-"}</div>
+            </div>
+            <div className="tdp-cell">
+              <div className="tdp-label">VENUE</div>
+              <div className="tdp-value">{eventLocation || "-"}</div>
+            </div>
+            <div className="tdp-cell">
+              <div className="tdp-label">TICKET CATEGORY</div>
+              <div className="tdp-value">{cat?.name || "-"}</div>
+            </div>
+            <div className="tdp-cell">
+              <div className="tdp-label">TICKET TYPE</div>
+              <div className="tdp-value">{type?.name || "-"}</div>
+            </div>
+            <div className="tdp-cell">
+              <div className="tdp-label">TICKET CODE</div>
+              <div className="tdp-value">ABC001-0001</div>
+            </div>
+          </div>
+
+          {/* QR placeholder */}
+          <div className="tdp-qr-wrap">
+            <div className="tdp-qr-label">SCAN AT ENTRANCE</div>
+            <div className="tdp-qr">
+              <div className="tdp-qr-inner">
+                <QrPlaceholder />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ======================================================
 // Icons
 // ======================================================
 
@@ -1234,6 +1516,90 @@ function PinIcon() {
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
       <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+// ⭐ NEW — ticket icon
+function TicketIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+      <line x1="13" y1="5" x2="13" y2="19" strokeDasharray="2 3" />
+    </svg>
+  );
+}
+
+// ⭐ QR placeholder for preview
+function QrPlaceholder() {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      width="100%"
+      height="100%"
+      fill="#1a1a1a"
+      aria-hidden="true"
+    >
+      {/* Corners */}
+      <rect x="2" y="2" width="24" height="24" />
+      <rect x="6" y="6" width="16" height="16" fill="#ffffff" />
+      <rect x="10" y="10" width="8" height="8" />
+
+      <rect x="74" y="2" width="24" height="24" />
+      <rect x="78" y="6" width="16" height="16" fill="#ffffff" />
+      <rect x="82" y="10" width="8" height="8" />
+
+      <rect x="2" y="74" width="24" height="24" />
+      <rect x="6" y="78" width="16" height="16" fill="#ffffff" />
+      <rect x="10" y="82" width="8" height="8" />
+
+      {/* Random noise blocks */}
+      <rect x="32" y="4" width="4" height="4" />
+      <rect x="40" y="8" width="4" height="4" />
+      <rect x="48" y="4" width="4" height="4" />
+      <rect x="56" y="12" width="4" height="4" />
+      <rect x="64" y="4" width="4" height="4" />
+
+      <rect x="32" y="16" width="4" height="4" />
+      <rect x="44" y="16" width="4" height="4" />
+      <rect x="52" y="20" width="4" height="4" />
+      <rect x="60" y="16" width="4" height="4" />
+
+      <rect x="4" y="32" width="4" height="4" />
+      <rect x="12" y="36" width="4" height="4" />
+      <rect x="20" y="32" width="4" height="4" />
+
+      <rect x="32" y="32" width="8" height="8" />
+      <rect x="44" y="32" width="4" height="4" />
+      <rect x="52" y="36" width="4" height="4" />
+      <rect x="60" y="32" width="8" height="8" />
+      <rect x="76" y="32" width="4" height="4" />
+      <rect x="88" y="36" width="4" height="4" />
+
+      <rect x="32" y="44" width="4" height="4" />
+      <rect x="44" y="48" width="8" height="4" />
+      <rect x="60" y="44" width="4" height="4" />
+      <rect x="72" y="48" width="4" height="4" />
+      <rect x="84" y="44" width="4" height="4" />
+
+      <rect x="32" y="56" width="4" height="4" />
+      <rect x="40" y="60" width="4" height="4" />
+      <rect x="52" y="56" width="8" height="4" />
+      <rect x="68" y="60" width="4" height="4" />
+      <rect x="80" y="56" width="4" height="4" />
+
+      <rect x="32" y="72" width="4" height="4" />
+      <rect x="44" y="72" width="4" height="4" />
+      <rect x="52" y="76" width="4" height="4" />
+      <rect x="64" y="72" width="4" height="4" />
+      <rect x="76" y="76" width="4" height="4" />
+      <rect x="88" y="72" width="4" height="4" />
+
+      <rect x="32" y="88" width="8" height="4" />
+      <rect x="44" y="84" width="4" height="4" />
+      <rect x="56" y="88" width="4" height="4" />
+      <rect x="68" y="84" width="4" height="4" />
+      <rect x="80" y="88" width="4" height="4" />
     </svg>
   );
 }

@@ -321,12 +321,59 @@
   border-radius: 999px;
 }
 
-.event-tickets-list {
+/* ⭐ NEW — stacked category groups */
+.event-tickets-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin-top: 20px;
+}
+
+.event-category-group {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 20px;
 }
+
+/* ---- Category header ---- */
+
+.event-category-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+  margin-bottom: 2px;
+}
+
+.event-category-name {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.event-category-meta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.2px;
+}
+
+.event-category-selected {
+  color: var(--color-secondary);
+  font-weight: 800;
+}
+
+.event-category-tickets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---- Individual ticket row ---- */
 
 .event-ticket-row {
   display: flex;
@@ -365,19 +412,9 @@
   margin-bottom: 4px;
 }
 
-.event-ticket-category {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--color-text-main);
-}
-
-.event-ticket-dash {
-  color: var(--color-border);
-}
-
 .event-ticket-type {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--color-text-main);
 }
 
@@ -764,6 +801,10 @@
 
   .event-section-title {
     font-size: 17px;
+  }
+
+  .event-tickets-groups {
+    gap: 22px;
   }
 
   .event-ticket-row {

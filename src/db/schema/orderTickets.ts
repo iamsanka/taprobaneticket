@@ -32,9 +32,24 @@ export const orderTickets = pgTable("order_tickets", {
 
   isScanned: boolean("is_scanned").notNull().default(false),
 
-  // ⭐ NEW: exact moment the ticket was scanned (null = never scanned)
+  // ⭐ Exact moment the ticket was scanned (null = never scanned)
   scannedAt: timestamp("scanned_at", { withTimezone: true }),
 
-  // ⭐ NEW: audit field
+  // ⭐ NEW: seating — snapshot pattern.
+  //
+  //   seatId     → which physical seat this ticket owns.
+  //                NULL for general-admission tickets (non-seated categories).
+  //                Plain integer, no FK — mirrors orders.eventId and
+  //                seats.bookedOrderId in this codebase. Keeps the ticket
+  //                row readable even if the seating map is later wiped.
+  //
+  //   seatLabel  → human-readable snapshot, e.g. "Left-A1" or "A1" for
+  //                single-section ("Main") maps. Frozen at booking time so
+  //                the PDF / invoice / scanner can render it without a join
+  //                to seats + seating_sections, and it survives map edits.
+  seatId: integer("seat_id"),
+  seatLabel: varchar("seat_label", { length: 64 }),
+
+  // ⭐ audit field
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

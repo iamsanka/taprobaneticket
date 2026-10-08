@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { eq, and, isNull, sql, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 
 import { db } from "@/db/drizzle";
 import { orders } from "@/db/schema/orders";
@@ -12,8 +12,14 @@ import { ticketTypes } from "@/db/schema/ticketTypes";
 import { eventTickets } from "@/db/schema/eventTickets";
 import { discountCodes } from "@/db/schema/discountCodes";
 import { discountCodeUses } from "@/db/schema/discountCodeUses";
+import { seatingMaps } from "@/db/schema/seatingMaps";
+import { seatingSections } from "@/db/schema/seatingSections";
+import { seats } from "@/db/schema/seats";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+// ⭐ Hold extension when the customer commits to paying
+const PAYMENT_HOLD_DURATION_MS = 30 * 60 * 1000; // 30 min
 
 /* ======================================================
    Apply a discount code to an amount.
@@ -24,7 +30,6 @@ function applyDiscount(
   totalCents: number,
   percentage: number
 ): { discountAmount: number; finalAmount: number } {
-  // Math.floor avoids accidentally over-discounting by rounding up
   const discountAmount = Math.floor((totalCents * percentage) / 100);
   return {
     discountAmount,
@@ -41,8 +46,10 @@ export async function POST(req: Request) {
       customerEmail,
       customerPhone,
       cartItems,
-      // ⭐ NEW: optional discount code
       discountCode: rawDiscountCode,
+      // ⭐ NEW — seat hold validation
+      seatToken: rawSeatToken,
+      seatIds: rawSeatIds,
     } = body;
 
     const eventId = cartItems?.[0]?.eventId;
@@ -55,13 +62,14 @@ export async function POST(req: Request) {
     }
 
     // ==================================================
-    // VALIDATE CART ITEMS (server-side, before any writes)
+    // 1. VALIDATE CART ITEMS (server-side, before any writes)
     // ==================================================
     type ValidatedItem = {
       typeId: number;
+      categoryId: number; // ⭐ NEW — needed for seat assignment
       eventId: number;
       quantity: number;
-      price: number; // from DB, not client
+      price: number;
     };
 
     const validatedItems: ValidatedItem[] = [];
@@ -117,6 +125,7 @@ export async function POST(req: Request) {
 
       validatedItems.push({
         typeId: item.typeId,
+        categoryId: ticketType.categoryId, // ⭐
         eventId: item.eventId,
         quantity: item.quantity,
         price: eventTicket.price,
@@ -124,7 +133,224 @@ export async function POST(req: Request) {
     }
 
     // ==================================================
-    // SERVER-SIDE DISCOUNT VALIDATION (never trust client)
+    // 2. VALIDATE + EXTEND SEAT HOLDS (if provided)
+    // ==================================================
+    // Rules:
+    //   - seatIds + seatToken must be provided together
+    //   - All seatIds must belong to a single seating map for
+    //     (eventId, some category), and that category must match
+    //     the categories of the items being purchased
+    //   - Every seat must currently be held by this token
+    //     and not expired/booked/blocked
+    //   - Total seats must equal the sum of quantities for the
+    //     seated category in this order
+    //   - On success, extend the hold to 30 min so the customer
+    //     has time to complete payment
+    //
+    // ⚠️ We do NOT mark seats as booked here. Booking happens in
+    //    the Stripe webhook (payment_intent.succeeded). If the PI
+    //    is created but never paid, the seats fall back to
+    //    available when the 30-min hold expires.
+    //
+    // v1 constraint: only ONE seated category per order. Enforced
+    // here (and mirrored on the client, File 40).
+    // ==================================================
+    let seatAssignments: Array<{ seatId: number; seatLabel: string; categoryId: number }> = [];
+    let extendedSeatExpiry: Date | null = null;
+
+    const hasSeats =
+      Array.isArray(rawSeatIds) && rawSeatIds.length > 0;
+
+    if (hasSeats) {
+      if (typeof rawSeatToken !== "string" || rawSeatToken.length < 8) {
+        return NextResponse.json(
+          {
+            error: "seatToken is required when seatIds are provided",
+            code: "MISSING_SEAT_TOKEN",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Normalize seat IDs
+      const seatIdSet = new Set<number>();
+      for (const raw of rawSeatIds) {
+        const n = Number(raw);
+        if (!Number.isInteger(n) || n <= 0) {
+          return NextResponse.json(
+            {
+              error: "seatIds must contain positive integers",
+              code: "INVALID_SEATS",
+            },
+            { status: 400 }
+          );
+        }
+        seatIdSet.add(n);
+      }
+      const seatIds = Array.from(seatIdSet);
+
+      // Fetch all seats
+      const seatRows = await db
+        .select()
+        .from(seats)
+        .where(inArray(seats.id, seatIds));
+
+      if (seatRows.length !== seatIds.length) {
+        return NextResponse.json(
+          {
+            error: "One or more seats no longer exist",
+            code: "SEAT_UNAVAILABLE",
+          },
+          { status: 409 }
+        );
+      }
+
+      // All seats must be on the same map
+      const uniqueMapIds = new Set(seatRows.map((s) => s.mapId));
+      if (uniqueMapIds.size !== 1) {
+        return NextResponse.json(
+          {
+            error: "All seats must belong to the same seating map",
+            code: "SEATS_DIFFERENT_MAPS",
+          },
+          { status: 400 }
+        );
+      }
+      const seatMapId = seatRows[0].mapId;
+
+      // The map must be for the same event as the cart
+      const [seatMap] = await db
+        .select()
+        .from(seatingMaps)
+        .where(eq(seatingMaps.id, seatMapId));
+
+      if (!seatMap || seatMap.eventId !== eventId) {
+        return NextResponse.json(
+          {
+            error: "Seats do not belong to this event",
+            code: "SEATS_WRONG_EVENT",
+          },
+          { status: 400 }
+        );
+      }
+
+      const seatedCategoryId = seatMap.categoryId;
+
+      // Count expected seats for the seated category in this cart
+      const expectedSeats = validatedItems
+        .filter((i) => i.categoryId === seatedCategoryId)
+        .reduce((sum, i) => sum + i.quantity, 0);
+
+      if (expectedSeats === 0) {
+        return NextResponse.json(
+          {
+            error: "Cart contains no tickets for the seating category",
+            code: "SEATS_NO_MATCHING_ITEMS",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (expectedSeats !== seatIds.length) {
+        return NextResponse.json(
+          {
+            error: `Expected ${expectedSeats} ${
+              expectedSeats === 1 ? "seat" : "seats"
+            } for this order, but received ${seatIds.length}.`,
+            code: "SEATS_COUNT_MISMATCH",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Every seat must be currently held by this token, unexpired,
+      // unbooked, unblocked.
+      const now = new Date();
+      for (const s of seatRows) {
+        if (s.isBlocked) {
+          return NextResponse.json(
+            {
+              error: "One or more selected seats are no longer available",
+              code: "SEAT_UNAVAILABLE",
+              unavailableSeatIds: [s.id],
+            },
+            { status: 409 }
+          );
+        }
+        if (s.bookedOrderId !== null) {
+          return NextResponse.json(
+            {
+              error: "One or more selected seats have already been booked",
+              code: "SEAT_UNAVAILABLE",
+              unavailableSeatIds: [s.id],
+            },
+            { status: 409 }
+          );
+        }
+        if (s.heldByToken !== rawSeatToken) {
+          return NextResponse.json(
+            {
+              error:
+                "Your seat hold has expired or was released. Please select seats again.",
+              code: "SEAT_EXPIRED",
+              unavailableSeatIds: [s.id],
+            },
+            { status: 409 }
+          );
+        }
+        if (!s.holdExpiresAt || s.holdExpiresAt <= now) {
+          return NextResponse.json(
+            {
+              error:
+                "Your seat hold has expired. Please select seats again.",
+              code: "SEAT_EXPIRED",
+            },
+            { status: 409 }
+          );
+        }
+      }
+
+      // Extend the hold to 30 min so the customer can pay in peace.
+      // (Runs inside the big transaction below to stay atomic with
+      // ticket creation.)
+      extendedSeatExpiry = new Date(
+        now.getTime() + PAYMENT_HOLD_DURATION_MS
+      );
+
+      // Fetch seat labels for snapshotting into order_tickets
+      const seatLabelsRaw = await db
+        .select({
+          seatId: seats.id,
+          rowLabel: seats.rowLabel,
+          numberLabel: seats.numberLabel,
+          sectionLabel: seatingSections.label,
+        })
+        .from(seats)
+        .leftJoin(seatingSections, eq(seatingSections.id, seats.sectionId))
+        .where(inArray(seats.id, seatIds));
+
+      // Same "hide Main prefix" rule as elsewhere
+      const totalSectionsInMap = await db
+        .select({ id: seatingSections.id })
+        .from(seatingSections)
+        .where(eq(seatingSections.mapId, seatMapId));
+      const multiSection = totalSectionsInMap.length > 1;
+      const singleMain =
+        totalSectionsInMap.length === 1 &&
+        (seatLabelsRaw[0]?.sectionLabel ?? "").toLowerCase() === "main";
+      const hidePrefix = !multiSection || singleMain;
+
+      seatAssignments = seatLabelsRaw.map((r) => ({
+        seatId: r.seatId,
+        seatLabel: hidePrefix
+          ? `${r.rowLabel}${r.numberLabel}`
+          : `${r.sectionLabel ?? "?"}-${r.rowLabel}${r.numberLabel}`,
+        categoryId: seatedCategoryId,
+      }));
+    }
+
+    // ==================================================
+    // 3. SERVER-SIDE DISCOUNT VALIDATION
     // ==================================================
     const subtotal = validatedItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
@@ -142,7 +368,6 @@ export async function POST(req: Request) {
       : "";
 
     if (normalizedCode) {
-      // ---- Look up + validate ----
       const [row] = await db
         .select()
         .from(discountCodes)
@@ -183,9 +408,6 @@ export async function POST(req: Request) {
         );
       }
 
-      // ---- Atomic usage-limit claim ----
-      // This UPDATE only succeeds if there is still a free slot.
-      // If two requests race for the last slot, exactly one wins.
       const claimed = await db
         .update(discountCodes)
         .set({
@@ -204,7 +426,6 @@ export async function POST(req: Request) {
         .returning({ usedCount: discountCodes.usedCount });
 
       if (claimed.length === 0) {
-        // Someone else grabbed the last slot a moment ago
         return NextResponse.json(
           {
             error: "Discount code has just reached its usage limit",
@@ -214,7 +435,6 @@ export async function POST(req: Request) {
         );
       }
 
-      // ---- Apply the discount to the math ----
       discountId = row.id;
       discountCodeString = row.code;
       discountPercentage = row.percentage;
@@ -225,7 +445,7 @@ export async function POST(req: Request) {
     }
 
     // ==================================================
-    // EVENT SEQUENCE CODE
+    // 4. EVENT SEQUENCE CODE
     // ==================================================
     const seqRows = await db
       .select()
@@ -242,7 +462,7 @@ export async function POST(req: Request) {
     const sequenceCode = seqRows[0].sequenceCode;
 
     // ==================================================
-    // ORDER NUMBER GENERATION
+    // 5. ORDER NUMBER GENERATION
     // ==================================================
     const [orderSeq] = await db
       .select()
@@ -264,12 +484,8 @@ export async function POST(req: Request) {
     const orderNumber = `${sequenceCode}${orderNoFormatted}`;
 
     // ==================================================
-    // STRIPE PAYMENT INTENT — charge the FINAL amount
+    // 6. STRIPE PAYMENT INTENT
     // ==================================================
-    // Note: if finalAmount is 0 (100% discount), Stripe requires a minimum
-    // of €0.50. We floor it at 1 cent so the flow doesn't break — but in
-    // practice you'd want to disallow 100% codes at the API level. See note
-    // at the bottom of this file.
     const stripeAmount = Math.max(finalAmount, 1);
 
     const paymentIntent = await stripe.paymentIntents.create({
@@ -286,86 +502,158 @@ export async function POST(req: Request) {
               discountAmount: String(discountAmount),
             }
           : {}),
+        // ⭐ Snapshot the seat hold so the webhook can find them
+        ...(hasSeats
+          ? {
+              seatToken: rawSeatToken as string,
+              seatIds: (rawSeatIds as number[]).join(","),
+            }
+          : {}),
       },
     });
 
     // ==================================================
-    // CREATE ORDER
+    // 7. ATOMIC WRITE: order + discount use + tickets + seat extension
     // ==================================================
-    const [orderRow] = await db
-      .insert(orders)
-      .values({
-        eventId,
-        sequenceCode,
-        orderNumber,
-        customerName,
-        customerEmail,
-        customerPhone,
-        totalPrice: finalAmount, // ⭐ store the discounted total
-        stripePaymentIntentId: paymentIntent.id,
-        status: "pending",
-        discountCode: discountCodeString,
-        discountAmount: discountAmount > 0 ? discountAmount : null,
-      })
-      .returning();
-
-    // ==================================================
-    // RECORD DISCOUNT USE (audit trail)
-    // ==================================================
-    if (discountId !== null && discountCodeString !== null) {
-      await db.insert(discountCodeUses).values({
-        discountCodeId: discountId,
-        orderId: orderRow.id,
-        code: discountCodeString,
-        customerEmail,
-        percentage: discountPercentage,
-        discountAmount,
-      });
-    }
-
-    // ==================================================
-    // CREATE TICKETS
-    // ==================================================
-    for (const item of validatedItems) {
-      for (let i = 0; i < item.quantity; i++) {
-        const [ticketSeq] = await db
-          .select()
-          .from(ticketSequence)
-          .where(eq(ticketSequence.eventId, eventId));
-
-        const ticketNo = ticketSeq?.nextTicketNo || 1;
-        const ticketNoFormatted = ticketNo.toString().padStart(4, "0");
-
-        if (ticketSeq) {
-          await db
-            .update(ticketSequence)
-            .set({ nextTicketNo: ticketNo + 1 })
-            .where(eq(ticketSequence.eventId, eventId));
-        } else {
-          await db.insert(ticketSequence).values({ eventId, nextTicketNo: 2 });
-        }
-
-        const ticketNumber = `${sequenceCode}${orderNoFormatted}${ticketNoFormatted}`;
-
-        const payload = JSON.stringify({
-          orderId: orderRow.id,
-          ticketTypeId: item.typeId,
-          ticketNumber,
-        });
-
-        await db.insert(orderTickets).values({
-          orderId: orderRow.id,
+    // Everything after this point runs in a transaction. If ticket
+    // creation fails, the order and discount-use rows roll back too.
+    // The Stripe PI is already created — if we roll back here, the PI
+    // is orphaned (still valid, never charged). That's acceptable —
+    // Stripe expires unpaid PIs after 24h, no money moves.
+    const result = await db.transaction(async (tx) => {
+      // 7a. Order
+      const [orderRow] = await tx
+        .insert(orders)
+        .values({
           eventId,
-          ticketTypeId: item.typeId,
-          ticketNumber,
-          qrCodeData: payload,
-          isScanned: false,
+          sequenceCode,
+          orderNumber,
+          customerName,
+          customerEmail,
+          customerPhone,
+          totalPrice: finalAmount,
+          stripePaymentIntentId: paymentIntent.id,
+          status: "pending",
+          discountCode: discountCodeString,
+          discountAmount: discountAmount > 0 ? discountAmount : null,
+        })
+        .returning();
+
+      // 7b. Discount use audit row
+      if (discountId !== null && discountCodeString !== null) {
+        await tx.insert(discountCodeUses).values({
+          discountCodeId: discountId,
+          orderId: orderRow.id,
+          code: discountCodeString,
+          customerEmail,
+          percentage: discountPercentage,
+          discountAmount,
         });
       }
-    }
+
+      // 7c. Extend seat hold to 30 min
+      // Only the seats in our hold — the WHERE clause protects against
+      // racing with the expiry sweeper (there isn't one, but be safe).
+      if (hasSeats && extendedSeatExpiry) {
+        await tx
+          .update(seats)
+          .set({
+            holdExpiresAt: extendedSeatExpiry,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              inArray(
+                seats.id,
+                seatAssignments.map((s) => s.seatId)
+              ),
+              eq(seats.heldByToken, rawSeatToken as string)
+            )
+          );
+      }
+
+      // 7d. Tickets
+      // Seat assignment: for the seated category, one seat per ticket.
+      // GA tickets get NULL seatId / seatLabel.
+      //
+      // We build a queue of seats for the seated category and pop one
+      // per ticket. Since v1 supports only ONE seated category per
+      // order, this is straightforward.
+      const seatQueue = seatAssignments.map((s) => ({
+        seatId: s.seatId,
+        seatLabel: s.seatLabel,
+      }));
+
+      let seatIndex = 0;
+
+      for (const item of validatedItems) {
+        for (let i = 0; i < item.quantity; i++) {
+          const [ticketSeq] = await tx
+            .select()
+            .from(ticketSequence)
+            .where(eq(ticketSequence.eventId, eventId));
+
+          const ticketNo = ticketSeq?.nextTicketNo || 1;
+          const ticketNoFormatted = ticketNo.toString().padStart(4, "0");
+
+          if (ticketSeq) {
+            await tx
+              .update(ticketSequence)
+              .set({ nextTicketNo: ticketNo + 1 })
+              .where(eq(ticketSequence.eventId, eventId));
+          } else {
+            await tx
+              .insert(ticketSequence)
+              .values({ eventId, nextTicketNo: 2 });
+          }
+
+          const ticketNumber = `${sequenceCode}${orderNoFormatted}${ticketNoFormatted}`;
+
+          const payload = JSON.stringify({
+            orderId: orderRow.id,
+            ticketTypeId: item.typeId,
+            ticketNumber,
+          });
+
+          // ⭐ Attach a seat if this item belongs to the seated category
+          let seatId: number | null = null;
+          let seatLabel: string | null = null;
+          if (item.categoryId === seatAssignments[0]?.categoryId) {
+            const slot = seatQueue[seatIndex];
+            if (slot) {
+              seatId = slot.seatId;
+              seatLabel = slot.seatLabel;
+              seatIndex++;
+            }
+          }
+
+          await tx.insert(orderTickets).values({
+            orderId: orderRow.id,
+            eventId,
+            ticketTypeId: item.typeId,
+            ticketNumber,
+            qrCodeData: payload,
+            isScanned: false,
+            seatId,     // ⭐ nullable
+            seatLabel,  // ⭐ nullable
+          });
+        }
+      }
+
+      // Sanity: every seat should have been assigned exactly once
+      if (hasSeats && seatIndex !== seatQueue.length) {
+        throw new Error(
+          `Seat assignment mismatch: ${seatIndex} assigned, ${seatQueue.length} expected`
+        );
+      }
+
+      return { orderRow };
+    });
+
+    const orderRow = result.orderRow;
 
     // ==================================================
-    // RESPONSE
+    // 8. RESPONSE
     // ==================================================
     return NextResponse.json(
       {
@@ -374,6 +662,10 @@ export async function POST(req: Request) {
         subtotal,
         discountAmount,
         finalAmount,
+        // ⭐ Report the new hold expiry so the client can update its timer
+        ...(extendedSeatExpiry
+          ? { seatHoldExpiresAt: extendedSeatExpiry.toISOString() }
+          : {}),
       },
       { status: 200 }
     );

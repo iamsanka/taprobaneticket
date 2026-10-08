@@ -8,9 +8,17 @@ import "./events.css";
 type EventTicket = {
   id: number;
   ticketTypeId: number;
+  categoryId: number;
   price: number;
   categoryName: string;
   typeName: string;
+};
+
+// ⭐ NEW — one group per category
+type TicketGroup = {
+  categoryId: number;
+  categoryName: string;
+  tickets: EventTicket[];
 };
 
 export default function CustomerEventPage({
@@ -53,6 +61,24 @@ export default function CustomerEventPage({
 
   const tickets: EventTicket[] = event?.eventTickets ?? [];
 
+  // ⭐ NEW — group tickets by category, preserving first-seen order
+  const ticketGroups: TicketGroup[] = useMemo(() => {
+    const map = new Map<number, TicketGroup>();
+    for (const t of tickets) {
+      const existing = map.get(t.categoryId);
+      if (existing) {
+        existing.tickets.push(t);
+      } else {
+        map.set(t.categoryId, {
+          categoryId: t.categoryId,
+          categoryName: t.categoryName,
+          tickets: [t],
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [tickets]);
+
   const totalQuantity = useMemo(
     () => Object.values(quantities).reduce((sum, q) => sum + q, 0),
     [quantities]
@@ -81,6 +107,7 @@ export default function CustomerEventPage({
       .filter((t) => quantities[t.id] > 0)
       .map((t) => ({
         typeId: t.ticketTypeId,
+        categoryId: t.categoryId,
         quantity: quantities[t.id],
         price: t.price,
         categoryName: t.categoryName,
@@ -220,7 +247,7 @@ export default function CustomerEventPage({
         </section>
       )}
 
-      {/* ---- Tickets (only for non-past events) ---- */}
+      {/* ---- Tickets (grouped by category) ---- */}
       {!isPast && (
         <section className="event-tickets-section">
           <div className="event-tickets-header">
@@ -240,64 +267,95 @@ export default function CustomerEventPage({
               </p>
             </div>
           ) : (
-            <div className="event-tickets-list">
-              {tickets.map((ticket) => {
-                const qty = quantities[ticket.id] || 0;
-                const subtotal = qty * ticket.price;
-                const isActive = qty > 0;
+            <div className="event-tickets-groups">
+              {ticketGroups.map((group) => {
+                // Count how many tickets in this category are selected
+                const groupSelected = group.tickets.reduce(
+                  (sum, t) => sum + (quantities[t.id] || 0),
+                  0
+                );
 
                 return (
                   <div
-                    key={ticket.id}
-                    className={`event-ticket-row ${
-                      isActive ? "active" : ""
-                    }`}
+                    key={group.categoryId}
+                    className="event-category-group"
                   >
-                    <div className="event-ticket-info">
-                      <div className="event-ticket-name">
-                        <span className="event-ticket-category">
-                          {ticket.categoryName}
-                        </span>
-                        <span className="event-ticket-dash">—</span>
-                        <span className="event-ticket-type">
-                          {ticket.typeName}
-                        </span>
-                      </div>
-                      <div className="event-ticket-price">
-                        €{(ticket.price / 100).toFixed(2)}
-                        <span className="event-ticket-price-unit">
-                          / ticket
-                        </span>
-                      </div>
+                    {/* Category header */}
+                    <div className="event-category-header">
+                      <h3 className="event-category-name">
+                        {group.categoryName}
+                      </h3>
+                      <span className="event-category-meta">
+                        {group.tickets.length}{" "}
+                        {group.tickets.length === 1 ? "type" : "types"}
+                        {groupSelected > 0 && (
+                          <span className="event-category-selected">
+                            {" · "}
+                            {groupSelected} selected
+                          </span>
+                        )}
+                      </span>
                     </div>
 
-                    <div className="event-ticket-controls">
-                      <div className="event-qty">
-                        <button
-                          type="button"
-                          className="event-qty-btn"
-                          onClick={() => decrement(ticket.id)}
-                          disabled={qty === 0}
-                          aria-label="Decrease quantity"
-                        >
-                          <MinusIcon />
-                        </button>
-                        <span className="event-qty-value">{qty}</span>
-                        <button
-                          type="button"
-                          className="event-qty-btn event-qty-btn-plus"
-                          onClick={() => increment(ticket.id)}
-                          aria-label="Increase quantity"
-                        >
-                          <PlusIcon />
-                        </button>
-                      </div>
+                    {/* Ticket rows */}
+                    <div className="event-category-tickets">
+                      {group.tickets.map((ticket) => {
+                        const qty = quantities[ticket.id] || 0;
+                        const subtotal = qty * ticket.price;
+                        const isActive = qty > 0;
 
-                      {qty > 0 && (
-                        <div className="event-ticket-subtotal">
-                          €{(subtotal / 100).toFixed(2)}
-                        </div>
-                      )}
+                        return (
+                          <div
+                            key={ticket.id}
+                            className={`event-ticket-row ${
+                              isActive ? "active" : ""
+                            }`}
+                          >
+                            <div className="event-ticket-info">
+                              <div className="event-ticket-name">
+                                <span className="event-ticket-type">
+                                  {ticket.typeName}
+                                </span>
+                              </div>
+                              <div className="event-ticket-price">
+                                €{(ticket.price / 100).toFixed(2)}
+                                <span className="event-ticket-price-unit">
+                                  / ticket
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="event-ticket-controls">
+                              <div className="event-qty">
+                                <button
+                                  type="button"
+                                  className="event-qty-btn"
+                                  onClick={() => decrement(ticket.id)}
+                                  disabled={qty === 0}
+                                  aria-label="Decrease quantity"
+                                >
+                                  <MinusIcon />
+                                </button>
+                                <span className="event-qty-value">{qty}</span>
+                                <button
+                                  type="button"
+                                  className="event-qty-btn event-qty-btn-plus"
+                                  onClick={() => increment(ticket.id)}
+                                  aria-label="Increase quantity"
+                                >
+                                  <PlusIcon />
+                                </button>
+                              </div>
+
+                              {qty > 0 && (
+                                <div className="event-ticket-subtotal">
+                                  €{(subtotal / 100).toFixed(2)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -315,9 +373,7 @@ export default function CustomerEventPage({
               <StarIcon />
             </div>
             <div className="event-past-cta-text">
-              <h3 className="event-past-cta-title">
-                Relive the moment
-              </h3>
+              <h3 className="event-past-cta-title">Relive the moment</h3>
               <p className="event-past-cta-desc">
                 Read the story, watch the aftermovie, and browse photos from
                 the night.

@@ -17,6 +17,9 @@ type FormState = {
   sequenceCode: string;
   pastEventTitle: string;
   pastEventStory: string;
+  // ⭐ NEW — ticket design
+  ticketImageUrl: string;
+  ticketImageTextColor: "light" | "dark";
 };
 
 type ExternalLinkType =
@@ -76,6 +79,8 @@ export default function EditEventPage({
     sequenceCode: "",
     pastEventTitle: "",
     pastEventStory: "",
+    ticketImageUrl: "",
+    ticketImageTextColor: "light",
   });
 
   const [externalLinks, setExternalLinks] = useState<ExternalLink[]>([]);
@@ -137,6 +142,10 @@ export default function EditEventPage({
           sequenceCode: e.sequenceCode || "",
           pastEventTitle: e.pastEventTitle || "",
           pastEventStory: e.pastEventStory || "",
+          // ⭐ NEW — load ticket design (fall back to safe defaults)
+          ticketImageUrl: e.ticketImageUrl || "",
+          ticketImageTextColor:
+            e.ticketImageTextColor === "dark" ? "dark" : "light",
         });
 
         // ---- Load external links ----
@@ -206,6 +215,11 @@ export default function EditEventPage({
         body: JSON.stringify({
           id: Number(eventId),
           ...form,
+          // ⭐ Ensure ticket design fields are sent explicitly
+          ticketImageUrl: form.ticketImageUrl || null,
+          ticketImageTextColor: form.ticketImageUrl
+            ? form.ticketImageTextColor
+            : null,
           eventTickets: eventTickets.map((t) => ({
             categoryId: t.categoryId,
             typeId: t.typeId,

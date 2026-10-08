@@ -6,6 +6,7 @@ import "./Cart.css";
 
 type CartItem = {
   typeId: number;
+  categoryId: number;
   quantity: number;
   price: number;
   categoryName: string;

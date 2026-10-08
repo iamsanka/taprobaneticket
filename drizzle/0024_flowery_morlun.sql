@@ -1,0 +1,1 @@
+ALTER TABLE "seating_maps" ADD COLUMN "stage_position" varchar(10) DEFAULT 'top' NOT NULL;

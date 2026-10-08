@@ -1147,3 +1147,382 @@
     order: 1;
   }
 }
+
+/* ==========================================
+   ⭐ Ticket Design section
+   ========================================== */
+
+.edit-card-ticket-design {
+  border-top: 3px solid var(--color-primary);
+}
+
+.edit-step-ticket {
+  color: var(--color-primary) !important;
+  background: rgba(26, 115, 232, 0.1) !important;
+  border-color: rgba(26, 115, 232, 0.25) !important;
+}
+
+.edit-label-note {
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* ---- Dropzone variant for ticket ---- */
+.edit-dropzone-ticket .edit-dropzone-empty {
+  padding: 28px 20px;
+}
+
+.edit-dropzone-ticket .edit-dropzone-empty svg {
+  color: var(--color-primary);
+}
+
+/* ---- Image already uploaded: thumbnail + actions ---- */
+.edit-ticket-image-set {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.edit-ticket-image-thumb {
+  flex-shrink: 0;
+  width: 90px;
+  aspect-ratio: 420 / 595;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.edit-ticket-image-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.edit-ticket-image-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.edit-ticket-change-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.edit-ticket-change-btn:hover {
+  background: var(--color-surface-alt);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.edit-ticket-change-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---- Color choice cards ---- */
+.edit-color-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.edit-color-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.edit-color-card:hover {
+  border-color: #bfd4ee;
+  background: #fafcff;
+}
+
+.edit-color-card.selected {
+  border-color: var(--color-primary);
+  background: #f5f9ff;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
+}
+
+.edit-color-swatch {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.edit-color-swatch-dark {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+.edit-color-swatch-light {
+  background: #f3f4f6;
+  color: #1a1a1a;
+  border: 1px solid var(--color-border);
+}
+
+.edit-color-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin-bottom: 2px;
+}
+
+.edit-color-desc {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+/* ==========================================
+   Ticket design preview (portrait)
+   ========================================== */
+
+.tdp-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  background: var(--color-surface-alt);
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+}
+
+.tdp-page {
+  position: relative;
+  width: 240px;
+  aspect-ratio: 420 / 595;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+}
+
+.tdp-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.tdp-bg-empty {
+  background: #f3f6fa;
+}
+
+.tdp-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tdp-content {
+  position: relative;
+  z-index: 1;
+  padding: 14px 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+
+.tdp-content-classic {
+  padding: 18px;
+}
+
+/* Color themes */
+.tdp-content-light {
+  color: #ffffff;
+}
+.tdp-content-light .tdp-brand,
+.tdp-content-light .tdp-title,
+.tdp-content-light .tdp-value {
+  color: #ffffff;
+}
+.tdp-content-light .tdp-label {
+  color: rgba(255, 255, 255, 0.72);
+}
+.tdp-content-light .tdp-type,
+.tdp-content-light .tdp-qr-label {
+  color: rgba(255, 255, 255, 0.85);
+}
+.tdp-content-light .tdp-divider {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.tdp-content-dark {
+  color: #1a1a1a;
+}
+.tdp-content-dark .tdp-brand,
+.tdp-content-dark .tdp-title,
+.tdp-content-dark .tdp-value {
+  color: #1a1a1a;
+}
+.tdp-content-dark .tdp-label {
+  color: rgba(0, 0, 0, 0.6);
+}
+.tdp-content-dark .tdp-type,
+.tdp-content-dark .tdp-qr-label {
+  color: rgba(0, 0, 0, 0.75);
+}
+.tdp-content-dark .tdp-divider {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.tdp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tdp-brand {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.tdp-badge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  background: #1a73e8;
+  color: #ffffff;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.tdp-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: right;
+  margin-bottom: 8px;
+}
+
+.tdp-divider {
+  height: 1px;
+  margin-bottom: 10px;
+}
+
+.tdp-title-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tdp-title-bar {
+  flex-shrink: 0;
+  width: 2px;
+  background: #1a73e8;
+  border-radius: 2px;
+}
+
+.tdp-title {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.2px;
+}
+
+.tdp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.tdp-cell {
+  min-width: 0;
+}
+
+.tdp-label {
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  margin-bottom: 3px;
+}
+
+.tdp-value {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tdp-qr-wrap {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.tdp-qr-label {
+  font-size: 6.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.tdp-qr {
+  width: 72px;
+  height: 72px;
+  background: #ffffff;
+  border-radius: 4px;
+  border: 1.5px solid #000000;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.tdp-qr-inner {
+  width: 100%;
+  height: 100%;
+}
+
+/* Responsive: stack color cards on narrow screens */
+@media (max-width: 640px) {
+  .edit-color-options {
+    grid-template-columns: 1fr;
+  }
+}

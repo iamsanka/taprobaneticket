@@ -15,7 +15,7 @@ import SeatPicker, {
 import "./checkout.css";
 
 const stripePromise = loadStripe(
-  process.env.STRIPE_PUBLISHABLE_KEY!
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
 type CartItem = {

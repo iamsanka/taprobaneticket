@@ -5,7 +5,6 @@ import {
   PDFFont,
   PDFPage,
   PDFImage,
-  LineCapStyle,
 } from "pdf-lib";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -16,7 +15,7 @@ export type PdfTicket = {
   categoryName?: string;
   typeName?: string;
   seatLabel?: string;
-  unitPrice?: number; // cents
+  unitPrice?: number;
 };
 
 export type PdfOrder = {
@@ -40,45 +39,98 @@ const PAGE_WIDTH = 420;
 const PAGE_HEIGHT = 595;
 
 // ======================================================
-// Brand palette — matches globals.css
+// Card layout — 2 rows, wide + short (matches mockup)
 // ======================================================
-const C = {
-  primary: rgb(0.165, 0.545, 0.769),    // #2a8bc4
-  secondary: rgb(0.878, 0.478, 0.337),  // #e07a56
-  accent: rgb(0.831, 0.686, 0.216),     // #d4af37
-  surface: rgb(1, 1, 1),
-  surfaceAlt: rgb(0.953, 0.965, 0.980),
-  textMain: rgb(0.133, 0.133, 0.133),
-  textMuted: rgb(0.333, 0.333, 0.333),
-  textLight: rgb(1, 1, 1),
-  border: rgb(0.878, 0.878, 0.878),
-  seatBg: rgb(0.988, 0.929, 0.796),
-};
+const CARD_X = 14;
+const CARD_W = PAGE_WIDTH - CARD_X * 2;   // 392
+const CARD_H = 96;
+const CARD_Y = 238;                        // bottom of the card
+const CARD_TOP = CARD_Y + CARD_H;          // 334
 
-// ======================================================
-// Layout constants
-// ======================================================
-const CARD_X = 16;
-const CARD_W = PAGE_WIDTH - CARD_X * 2;   // 388
-const CARD_H = 180;
-const CARD_Y = 230;
-const CARD_TOP = CARD_Y + CARD_H;          // 410
-const CARD_PAD = 20;
-const CONTENT_LEFT = CARD_X + CARD_PAD;    // 36
-const CONTENT_RIGHT = CARD_X + CARD_W - CARD_PAD; // 384
+// Row centers
+const ROW1_Y = CARD_TOP - 30;  // 304 — Location | Type
+const ROW2_Y = CARD_Y + 26;    // 264 — Date | Time | Price
 
-// Row baselines inside the card
-const ROW1_Y = CARD_TOP - 42;   // 368 — Location / Category / Type
-const ROW2_Y = ROW1_Y - 42;     // 326 — Date & Time / Price
-const ROW3_Y = ROW2_Y - 42;     // 284 — Seat (optional)
+// Column boundaries (x-anchor points inside the card)
+const COL_ICON_X = CARD_X + 18;      // icon center of first column
+const COL_TEXT_X = CARD_X + 34;      // first-column text start
+const COL_DIV_1 = CARD_X + 210;      // vertical divider after location/date
+
+// Row 1 (Location | Type)
+const ROW1_TYPE_RIGHT = CARD_X + CARD_W - 16;
+
+// Row 2 (Date | Time | Price)
+const ROW2_DIV_1 = CARD_X + 130;
+const ROW2_ICON2_X = CARD_X + 152;
+const ROW2_TEXT2_X = CARD_X + 168;
+const ROW2_DIV_2 = CARD_X + 250;
+const ROW2_ICON3_X = CARD_X + 272;
+const ROW2_TEXT3_X = CARD_X + 288;
+const ROW2_PRICE_RIGHT = CARD_X + CARD_W - 16;
 
 // QR code
-const QR_SIZE = 100; //qr code size 110*110
-const QR_X = PAGE_WIDTH - QR_SIZE - 40;  // right alogned with 30pt margin
-const QR_Y = 70; //vertical position from the bottom of the page
+const QR_SIZE = 110;
+const QR_X = (PAGE_WIDTH - QR_SIZE) / 2;
+const QR_Y = 62;
 
 // Footer
 const FOOTER_Y = 22;
+
+// ======================================================
+// Brand palette
+// ======================================================
+const C = {
+  primary: rgb(0.165, 0.545, 0.769),    // #2a8bc4
+  secondary: rgb(0.878, 0.478, 0.337),  // #e07a56 (coral)
+  accent: rgb(0.831, 0.686, 0.216),     // #d4af37
+  surface: rgb(1, 1, 1),
+  surfaceAlt: rgb(0.953, 0.965, 0.980),
+  cardBg: rgb(0.972, 0.957, 0.902),     // warm cream #f8f4e6
+  textMain: rgb(0.063, 0.078, 0.094),   // #101418
+  textMuted: rgb(0.42, 0.42, 0.42),
+  textLight: rgb(1, 1, 1),
+  divider: rgb(0.72, 0.7, 0.66),
+  border: rgb(0.878, 0.878, 0.878),
+};
+
+// ======================================================
+// Font sizes (pt)
+// ======================================================
+const FS_ROW_TEXT = 11;
+const FS_PRICE = 18;
+const FS_FOOTER_LABEL = 8;
+const FS_FOOTER_VALUE = 11;
+
+// ======================================================
+// Fonts
+// ======================================================
+
+type FontSet = { regular: PDFFont; bold: PDFFont };
+
+async function loadCustomFont(
+  pdfDoc: PDFDocument,
+  filename: string,
+  fallback: StandardFonts
+): Promise<PDFFont> {
+  try {
+    const fontPath = path.join(process.cwd(), "public", "fonts", filename);
+    const bytes = await readFile(fontPath);
+    return await pdfDoc.embedFont(bytes, { subset: true });
+  } catch {
+    console.warn(
+      `generateTicketPdf: "${filename}" not found — using ${fallback}`
+    );
+    return await pdfDoc.embedFont(fallback);
+  }
+}
+
+async function loadFonts(pdfDoc: PDFDocument): Promise<FontSet> {
+  const [regular, bold] = await Promise.all([
+    loadCustomFont(pdfDoc, "RobotoCondensed-Regular.ttf", StandardFonts.Helvetica),
+    loadCustomFont(pdfDoc, "RobotoCondensed-Bold.ttf", StandardFonts.HelveticaBold),
+  ]);
+  return { regular, bold };
+}
 
 // ======================================================
 // Entry point
@@ -97,9 +149,7 @@ export async function generateTicketPdf(
   }
 
   const pdfDoc = await PDFDocument.create();
-  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
+  const fonts = await loadFonts(pdfDoc);
   const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
 
   const wantPhoto = !!(order.ticketImageUrl && order.ticketImageTextColor);
@@ -109,9 +159,9 @@ export async function generateTicketPdf(
   }
 
   if (ticketImage) {
-    await drawPhotoMode(pdfDoc, page, order, ticket, bold, regular, ticketImage);
+    await drawPhotoMode(pdfDoc, page, order, ticket, fonts, ticketImage);
   } else {
-    await drawClassicMode(pdfDoc, page, order, ticket, bold, regular);
+    await drawClassicMode(pdfDoc, page, order, ticket, fonts);
   }
 
   return await pdfDoc.save();
@@ -131,13 +181,10 @@ async function fetchImageBytes(url: string): Promise<Uint8Array | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      console.warn(
-        `generateTicketPdf: ticket image HTTP ${res.status} for ${url}`
-      );
+      console.warn(`generateTicketPdf: image HTTP ${res.status} for ${url}`);
       return null;
     }
     const buf = new Uint8Array(await res.arrayBuffer());
-
     if (bgCache.size >= BG_CACHE_MAX) {
       const firstKey = bgCache.keys().next().value;
       if (firstKey) bgCache.delete(firstKey);
@@ -145,7 +192,7 @@ async function fetchImageBytes(url: string): Promise<Uint8Array | null> {
     bgCache.set(url, buf);
     return buf;
   } catch (err) {
-    console.warn("generateTicketPdf: ticket image fetch failed:", err);
+    console.warn("generateTicketPdf: image fetch failed:", err);
     return null;
   }
 }
@@ -177,52 +224,23 @@ async function drawPhotoMode(
   page: PDFPage,
   order: PdfOrder,
   ticket: PdfTicket,
-  bold: PDFFont,
-  regular: PDFFont,
+  fonts: FontSet,
   bg: PDFImage
 ): Promise<void> {
   const W = PAGE_WIDTH;
   const H = PAGE_HEIGHT;
 
+  // Cover-fit the background image
   const scale = Math.max(W / bg.width, H / bg.height);
   const drawW = bg.width * scale;
   const drawH = bg.height * scale;
   const x = (W - drawW) / 2;
   const y = (H - drawH) / 2;
-
   page.drawImage(bg, { x, y, width: drawW, height: drawH });
 
-  // ---- Card shadow (soft, adds depth) ----
-  page.drawRectangle({
-    x: CARD_X + 2,
-    y: CARD_Y - 4,
-    width: CARD_W,
-    height: CARD_H,
-    color: rgb(0, 0, 0),
-    opacity: 0.22,
-  });
-
-  // ⭐ Semi-transparent frosted card (was opaque white)
-  page.drawRectangle({
-    x: CARD_X,
-    y: CARD_Y,
-    width: CARD_W,
-    height: CARD_H,
-    color: C.surface,
-    opacity: 0.85,
-  });
-
-  // Thin brand stripe on the left edge of the card
-  page.drawRectangle({
-    x: CARD_X,
-    y: CARD_Y,
-    width: 4,
-    height: CARD_H,
-    color: C.primary,
-  });
-
-  await drawDetails(pdfDoc, page, order, ticket, bold, regular);
-  await drawQrAndFooter(pdfDoc, page, order, ticket, bold, regular);
+  drawInfoCard(page, order, ticket, fonts);
+  await drawQr(pdfDoc, page, ticket);
+  drawFooter(page, order, ticket, fonts);
 }
 
 // ======================================================
@@ -234,16 +252,12 @@ async function drawClassicMode(
   page: PDFPage,
   order: PdfOrder,
   ticket: PdfTicket,
-  bold: PDFFont,
-  regular: PDFFont
+  fonts: FontSet
 ): Promise<void> {
   const W = PAGE_WIDTH;
   const H = PAGE_HEIGHT;
 
-  page.drawRectangle({
-    x: 0, y: 0, width: W, height: H,
-    color: C.surfaceAlt,
-  });
+  page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: C.surfaceAlt });
 
   const B = 6;
   page.drawRectangle({ x: 0, y: 0, width: B, height: H, color: C.primary });
@@ -263,253 +277,193 @@ async function drawClassicMode(
     color: C.primary,
   });
 
-  await drawClassicHeader(page, order, ticket, bold);
-
-  // Card (opaque in classic mode)
-  page.drawRectangle({
-    x: CARD_X + 2,
-    y: CARD_Y - 4,
-    width: CARD_W,
-    height: CARD_H,
-    color: rgb(0, 0, 0),
-    opacity: 0.06,
-  });
-  page.drawRectangle({
-    x: CARD_X, y: CARD_Y, width: CARD_W, height: CARD_H,
-    color: C.surface,
-  });
-  page.drawRectangle({
-    x: CARD_X, y: CARD_Y, width: 4, height: CARD_H,
-    color: C.primary,
-  });
-
-  await drawDetails(pdfDoc, page, order, ticket, bold, regular);
-  await drawQrAndFooter(pdfDoc, page, order, ticket, bold, regular);
+  drawClassicHeader(page, order, ticket, fonts);
+  drawInfoCard(page, order, ticket, fonts);
+  await drawQr(pdfDoc, page, ticket);
+  drawFooter(page, order, ticket, fonts);
 }
 
 async function drawClassicHeader(
   page: PDFPage,
   order: PdfOrder,
   ticket: PdfTicket,
-  bold: PDFFont
+  fonts: FontSet
 ): Promise<void> {
-  const cLeft = 30;
-  const cRight = PAGE_WIDTH - 30;
+  const cLeft = 26;
+  const cRight = PAGE_WIDTH - 26;
 
   page.drawText(safeText(order.brandName), {
-    x: cLeft, y: PAGE_HEIGHT - 60,
-    size: 11, font: bold, color: C.primary,
+    x: cLeft, y: PAGE_HEIGHT - 40,
+    size: 11, font: fonts.bold, color: C.primary,
   });
 
   const titleLines = wrapToMaxLines(
     safeText(order.eventTitle),
-    bold,
-    22,
+    fonts.bold,
+    20,
     cRight - cLeft,
     2
   );
 
-  const titleStartY = PAGE_HEIGHT - 100;
+  const titleStartY = PAGE_HEIGHT - 78;
   titleLines.forEach((line, i) => {
     page.drawText(line, {
-      x: cLeft, y: titleStartY - i * 26,
-      size: 22, font: bold, color: C.textMain,
+      x: cLeft, y: titleStartY - i * 24,
+      size: 20, font: fonts.bold, color: C.textMain,
     });
   });
-
-  if (ticket.categoryName) {
-    const badgeText = ticket.categoryName.toUpperCase();
-    const badgeSize = 9;
-    const padX = 10;
-    const padY = 4;
-    const textW = bold.widthOfTextAtSize(badgeText, badgeSize);
-    const badgeW = textW + padX * 2;
-    const badgeH = badgeSize + padY * 2;
-    const badgeX = cLeft;
-    const badgeY = titleStartY - (titleLines.length - 1) * 26 - 34;
-
-    page.drawRectangle({
-      x: badgeX, y: badgeY,
-      width: badgeW, height: badgeH,
-      color: C.primary,
-    });
-    page.drawText(badgeText, {
-      x: badgeX + padX, y: badgeY + padY + 1,
-      size: badgeSize, font: bold, color: C.textLight,
-    });
-  }
 }
 
 // ======================================================
-// Details — rows inside the card
+// Info card — 2 rows with icons + dividers
 // ======================================================
 
-async function drawDetails(
-  pdfDoc: PDFDocument,
+function drawInfoCard(
   page: PDFPage,
   order: PdfOrder,
   ticket: PdfTicket,
-  bold: PDFFont,
-  regular: PDFFont
-): Promise<void> {
-  const categoryLabel = ticket.categoryName ?? "";
-  const typeLabel = ticket.typeName ?? "";
+  fonts: FontSet
+): void {
+  // ---- Card background (soft shadow + cream fill) ----
+  page.drawRectangle({
+    x: CARD_X + 1,
+    y: CARD_Y - 3,
+    width: CARD_W,
+    height: CARD_H,
+    color: rgb(0, 0, 0),
+    opacity: 0.15,
+  });
+  page.drawRectangle({
+    x: CARD_X,
+    y: CARD_Y,
+    width: CARD_W,
+    height: CARD_H,
+    color: C.cardBg,
+    opacity: 0.97,
+  });
 
-  // ---------- ROW 1: Location | Category badge | Type ----------
-  // Pin icon
-  drawPinIcon(page, CONTENT_LEFT + 6, ROW1_Y + 2, 11, C.primary);
+  const { date, time } = splitEventDateTime(order);
+  const venue = safeText(order.eventLocation || "—");
+  const typeText = safeText(ticket.typeName || "—");
 
+  // ==================================================
+  // ROW 1: 📍 Location | Type
+  // ==================================================
+  drawPinIcon(page, COL_ICON_X, ROW1_Y, 9, C.textMain);
+
+  // Location
+  const locationMaxW = ROW1_TYPE_RIGHT - COL_TEXT_X - 60;
   const locationText = truncateToWidth(
-    safeText(order.eventLocation || "—"),
-    bold,
-    12,
-    150
+    venue,
+    fonts.regular,
+    FS_ROW_TEXT,
+    locationMaxW
   );
   page.drawText(locationText, {
-    x: CONTENT_LEFT + 18, y: ROW1_Y - 2,
-    size: 12, font: bold, color: C.textMain,
+    x: COL_TEXT_X,
+    y: ROW1_Y - FS_ROW_TEXT * 0.35,
+    size: FS_ROW_TEXT,
+    font: fonts.regular,
+    color: C.textMain,
   });
 
-  // Right side: [CATEGORY] [TYPE]
-  if (typeLabel) {
-    const typeText = truncateToWidth(safeText(typeLabel), bold, 12, 100);
-    const typeW = bold.widthOfTextAtSize(typeText, 12);
-    page.drawText(typeText, {
-      x: CONTENT_RIGHT - typeW,
-      y: ROW1_Y - 2,
-      size: 12, font: bold, color: C.textMain,
-    });
+  // Vertical divider before Type
+  drawVDivider(page, ROW1_TYPE_RIGHT - 55, ROW1_Y, 16);
 
-    if (categoryLabel) {
-      const badgeText = categoryLabel.toUpperCase();
-      const badgeSize = 9;
-      const padX = 8;
-      const padY = 3;
-      const textW = bold.widthOfTextAtSize(badgeText, badgeSize);
-      const badgeW = textW + padX * 2;
-      const badgeH = badgeSize + padY * 2;
-      const badgeX = CONTENT_RIGHT - typeW - 10 - badgeW;
-      const badgeY = ROW1_Y - 5;
+  // Type (right-aligned)
+  const typeW = fonts.bold.widthOfTextAtSize(typeText, FS_ROW_TEXT);
+  page.drawText(typeText, {
+    x: ROW1_TYPE_RIGHT - typeW,
+    y: ROW1_Y - FS_ROW_TEXT * 0.35,
+    size: FS_ROW_TEXT,
+    font: fonts.bold,
+    color: C.textMain,
+  });
 
-      const isLounge = /lounge/i.test(categoryLabel);
-      const badgeColor = isLounge ? C.accent : C.primary;
-      const badgeTextColor = isLounge ? C.textMain : C.textLight;
+  // ==================================================
+  // ROW 2: 📅 Date | 🕐 Time | 🎫 Price
+  // ==================================================
+  drawCalendarIcon(page, COL_ICON_X, ROW2_Y, 9, C.textMain);
 
-      page.drawRectangle({
-        x: badgeX, y: badgeY,
-        width: badgeW, height: badgeH,
-        color: badgeColor,
-      });
-      page.drawText(badgeText, {
-        x: badgeX + padX, y: badgeY + padY + 1,
-        size: badgeSize, font: bold, color: badgeTextColor,
-      });
-    }
-  }
-
-  // ---------- ROW 2: Date & Time | Price ----------
-  drawCalendarIcon(page, CONTENT_LEFT + 6, ROW2_Y + 2, 11, C.primary);
-
+  // Date
+  const dateMaxW = ROW2_DIV_1 - COL_TEXT_X - 10;
   const dateText = truncateToWidth(
-    safeText(order.eventTime || "—"),
-    bold,
-    12,
-    170
+    date || "—",
+    fonts.regular,
+    FS_ROW_TEXT,
+    dateMaxW
   );
   page.drawText(dateText, {
-    x: CONTENT_LEFT + 18, y: ROW2_Y - 2,
-    size: 12, font: bold, color: C.textMain,
+    x: COL_TEXT_X,
+    y: ROW2_Y - FS_ROW_TEXT * 0.35,
+    size: FS_ROW_TEXT,
+    font: fonts.regular,
+    color: C.textMain,
   });
 
+  // Divider before Time
+  drawVDivider(page, ROW2_DIV_1, ROW2_Y, 16);
+
+  // Clock icon
+  drawClockIcon(page, ROW2_ICON2_X, ROW2_Y, 9, C.textMain);
+
+  // Time
+  const timeMaxW = ROW2_DIV_2 - ROW2_TEXT2_X - 10;
+  const timeText = truncateToWidth(
+    time || "—",
+    fonts.regular,
+    FS_ROW_TEXT,
+    timeMaxW
+  );
+  page.drawText(timeText, {
+    x: ROW2_TEXT2_X,
+    y: ROW2_Y - FS_ROW_TEXT * 0.35,
+    size: FS_ROW_TEXT,
+    font: fonts.regular,
+    color: C.textMain,
+  });
+
+  // Divider before Price
+  drawVDivider(page, ROW2_DIV_2, ROW2_Y, 16);
+
+  // Ticket icon
+  drawTicketIcon(page, ROW2_ICON3_X, ROW2_Y, 9, C.textMain);
+
+  // Price (right-aligned, coral, bigger)
   if (ticket.unitPrice !== undefined && ticket.unitPrice > 0) {
     const priceText = `€${(ticket.unitPrice / 100).toFixed(2)}`;
-    const priceSize = 16;
-    const priceW = bold.widthOfTextAtSize(priceText, priceSize);
+    const priceW = fonts.bold.widthOfTextAtSize(priceText, FS_PRICE);
     page.drawText(priceText, {
-      x: CONTENT_RIGHT - priceW,
-      y: ROW2_Y - 4,
-      size: priceSize, font: bold, color: C.secondary,
+      x: ROW2_PRICE_RIGHT - priceW,
+      y: ROW2_Y - FS_PRICE * 0.35,
+      size: FS_PRICE,
+      font: fonts.bold,
+      color: C.secondary,
     });
   }
-
-  // ---------- ROW 3: Seat (only if seated) ----------
-  if (ticket.seatLabel) {
-    // Chair icon
-    drawSeatIcon(page, CONTENT_LEFT + 6, ROW3_Y + 2, 11, C.accent);
-
-    // "SEAT" label
-    page.drawText("SEAT", {
-      x: CONTENT_LEFT + 18, y: ROW3_Y + 2,
-      size: 9, font: bold, color: C.textMuted,
-    });
-
-    // Seat value — big and prominent
-    const seatText = safeText(ticket.seatLabel);
-    page.drawText(seatText, {
-      x: CONTENT_LEFT + 18, y: ROW3_Y - 14,
-      size: 18, font: bold, color: C.primary,
-    });
-
-    // Gold accent pill behind the seat value
-    const seatW = bold.widthOfTextAtSize(seatText, 18);
-    page.drawRectangle({
-      x: CONTENT_LEFT + 12, y: ROW3_Y - 20,
-      width: seatW + 12, height: 26,
-      color: C.seatBg,
-      opacity: 0.65,
-    });
-    // Redraw the text on top of the pill
-    page.drawText(seatText, {
-      x: CONTENT_LEFT + 18, y: ROW3_Y - 14,
-      size: 18, font: bold, color: C.primary,
-    });
-  }
-
-  void pdfDoc;
-  void regular;
 }
 
 // ======================================================
-// QR code + footer
+// QR code
 // ======================================================
 
-async function drawQrAndFooter(
+async function drawQr(
   pdfDoc: PDFDocument,
   page: PDFPage,
-  order: PdfOrder,
-  ticket: PdfTicket,
-  bold: PDFFont,
-  regular: PDFFont
+  ticket: PdfTicket
 ): Promise<void> {
   // "SCAN AT ENTRANCE" label
   const scanText = "SCAN AT ENTRANCE";
   const scanSize = 8;
-  const scanW = bold.widthOfTextAtSize(scanText, scanSize);
-  page.drawText(scanText, {
-    x: QR_X + (QR_SIZE - scanW) / 2,
-    y: QR_Y + QR_SIZE + 12,
-    size: scanSize, font: bold, color: C.textMuted,
-  });
 
-  // QR frame
-  const framePad = 8;
+  // White halo behind everything (helps on busy backgrounds)
   page.drawRectangle({
-    x: QR_X - framePad,
-    y: QR_Y - framePad,
-    width: QR_SIZE + framePad * 2,
-    height: QR_SIZE + framePad * 2,
+    x: QR_X - 10,
+    y: QR_Y - 10,
+    width: QR_SIZE + 20,
+    height: QR_SIZE + 20,
     color: rgb(1, 1, 1),
-    borderColor: rgb(0, 0, 0),
-    borderWidth: 1.5,
-  });
-
-  // Brand accent bar on top of QR frame
-  page.drawRectangle({
-    x: QR_X - framePad,
-    y: QR_Y + QR_SIZE + framePad - 3,
-    width: QR_SIZE + framePad * 2,
-    height: 3,
-    color: C.primary,
+    opacity: 0.92,
   });
 
   // QR image
@@ -519,59 +473,78 @@ async function drawQrAndFooter(
     width: QR_SIZE, height: QR_SIZE,
   });
 
-  // ---- Footer ----
-  // Divider line above footer
-  page.drawLine({
-    start: { x: CONTENT_LEFT, y: FOOTER_Y + 34 },
-    end: { x: CONTENT_RIGHT, y: FOOTER_Y + 34 },
-    thickness: 0.5,
-    color: C.textMuted,
-    opacity: 0.5,
-  });
-
-  // Left: Ticket No
-  page.drawText("Ticket No:", {
-    x: CONTENT_LEFT, y: FOOTER_Y + 20,
-    size: 9, font: bold, color: C.textMuted,
-  });
-  page.drawText(safeText(ticket.ticketNumber), {
-    x: CONTENT_LEFT, y: FOOTER_Y + 4,
-    size: 12, font: bold, color: C.textMain,
-  });
-
-  // Right: Name
-  const nameLabel = "Name:";
-  const nameLabelW = bold.widthOfTextAtSize(nameLabel, 9);
-  const nameText = truncateToWidth(
-    safeText(order.customerName),
-    bold,
-    12,
-    160
-  );
-  const nameTextW = bold.widthOfTextAtSize(nameText, 12);
-  const nameLeftEdge =
-    CONTENT_RIGHT - Math.max(nameLabelW, nameTextW);
-
-  page.drawText(nameLabel, {
-    x: nameLeftEdge, y: FOOTER_Y + 20,
-    size: 9, font: bold, color: C.textMuted,
-  });
-  page.drawText(nameText, {
-    x: nameLeftEdge, y: FOOTER_Y + 4,
-    size: 12, font: bold, color: C.textMain,
-  });
-
-  void regular;
+  void scanText;
+  void scanSize;
 }
 
 // ======================================================
-// Icons — drawn with primitives (no external assets)
+// Footer — Ticket No | Name
 // ======================================================
 
-/**
- * Map pin icon — a filled circle with a small vertical line tail.
- * Center is at (cx, cy). Height is about `size`.
- */
+function drawFooter(
+  page: PDFPage,
+  order: PdfOrder,
+  ticket: PdfTicket,
+  fonts: FontSet
+): void {
+  const LEFT_X = CARD_X + 8;
+  const RIGHT_X = CARD_X + CARD_W / 2 + 8;
+
+  // Subtle separator line above footer
+  page.drawLine({
+    start: { x: CARD_X, y: FOOTER_Y + 32 },
+    end: { x: CARD_X + CARD_W, y: FOOTER_Y + 32 },
+    thickness: 0.4,
+    color: C.divider,
+    opacity: 0.5,
+  });
+
+  // ---- Left: Ticket No ----
+  page.drawText("Ticket No:", {
+    x: LEFT_X,
+    y: FOOTER_Y + 16,
+    size: FS_FOOTER_LABEL,
+    font: fonts.bold,
+    color: C.textMuted,
+  });
+  page.drawText(safeText(ticket.ticketNumber), {
+    x: LEFT_X,
+    y: FOOTER_Y,
+    size: FS_FOOTER_VALUE,
+    font: fonts.bold,
+    color: C.textMain,
+  });
+
+  // ---- Right: Name ----
+  page.drawText("Name:", {
+    x: RIGHT_X,
+    y: FOOTER_Y + 16,
+    size: FS_FOOTER_LABEL,
+    font: fonts.bold,
+    color: C.textMuted,
+  });
+  page.drawText(
+    truncateToWidth(
+      safeText(order.customerName),
+      fonts.bold,
+      FS_FOOTER_VALUE,
+      CARD_W / 2 - 16
+    ),
+    {
+      x: RIGHT_X,
+      y: FOOTER_Y,
+      size: FS_FOOTER_VALUE,
+      font: fonts.bold,
+      color: C.textMain,
+    }
+  );
+}
+
+// ======================================================
+// Icons — small, clean, drawn as primitives
+// ======================================================
+
+/** Pin icon — filled circle with a small tail. */
 function drawPinIcon(
   page: PDFPage,
   cx: number,
@@ -580,37 +553,23 @@ function drawPinIcon(
   color: ReturnType<typeof rgb>
 ): void {
   const r = size * 0.42;
-
-  // Head circle
+  // Head
   page.drawCircle({
     x: cx,
-    y: cy + size * 0.2,
+    y: cy + size * 0.15,
     size: r,
     color,
   });
-
-  // Inner hole (white)
-  page.drawCircle({
-    x: cx,
-    y: cy + size * 0.2,
-    size: r * 0.4,
-    color: rgb(1, 1, 1),
-  });
-
-  // Tail — short thick line pointing down
+  // Tail
   page.drawLine({
-    start: { x: cx, y: cy + size * 0.2 - r },
-    end: { x: cx, y: cy - size * 0.35 },
-    thickness: size * 0.18,
+    start: { x: cx, y: cy + size * 0.15 - r + 1 },
+    end: { x: cx, y: cy - size * 0.5 },
+    thickness: size * 0.28,
     color,
-    lineCap: LineCapStyle.Round,
   });
 }
 
-/**
- * Calendar icon — outlined rectangle with two hangers on top
- * and a horizontal divider line.
- */
+/** Calendar icon — outlined rectangle with two top hangers and a header line. */
 function drawCalendarIcon(
   page: PDFPage,
   cx: number,
@@ -618,90 +577,151 @@ function drawCalendarIcon(
   size: number,
   color: ReturnType<typeof rgb>
 ): void {
-  const w = size * 0.9;
-  const h = size * 0.8;
+  const w = size * 1.0;
+  const h = size * 0.85;
   const x = cx - w / 2;
-  const y = cy - h / 2 + size * 0.1;
+  const y = cy - h / 2;
 
-  // Outline rectangle
+  // Outline
   page.drawRectangle({
-    x,
-    y,
-    width: w,
-    height: h,
+    x, y, width: w, height: h,
     borderColor: color,
     borderWidth: 1.2,
   });
 
-  // Two vertical hangers on top
+  // Header line
   page.drawLine({
-    start: { x: cx - w * 0.25, y: y + h },
-    end: { x: cx - w * 0.25, y: y + h + size * 0.22 },
-    thickness: 1.5,
-    color,
-  });
-  page.drawLine({
-    start: { x: cx + w * 0.25, y: y + h },
-    end: { x: cx + w * 0.25, y: y + h + size * 0.22 },
-    thickness: 1.5,
+    start: { x, y: y + h * 0.62 },
+    end: { x: x + w, y: y + h * 0.62 },
+    thickness: 1,
     color,
   });
 
-  // Horizontal divider near the top
+  // Top hangers
   page.drawLine({
-    start: { x, y: y + h * 0.6 },
-    end: { x: x + w, y: y + h * 0.6 },
-    thickness: 1,
+    start: { x: cx - w * 0.28, y: y + h },
+    end: { x: cx - w * 0.28, y: y + h + size * 0.2 },
+    thickness: 1.4,
+    color,
+  });
+  page.drawLine({
+    start: { x: cx + w * 0.28, y: y + h },
+    end: { x: cx + w * 0.28, y: y + h + size * 0.2 },
+    thickness: 1.4,
     color,
   });
 }
 
-/**
- * Chair icon — a rectangle with a small "backrest" bar on top.
- */
-function drawSeatIcon(
+/** Clock icon — outlined circle with hour + minute hands. */
+function drawClockIcon(
   page: PDFPage,
   cx: number,
   cy: number,
   size: number,
   color: ReturnType<typeof rgb>
 ): void {
-  const w = size * 0.75;
-  const h = size * 0.55;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
+  const r = size * 0.5;
 
-  // Seat
-  page.drawRectangle({
-    x,
-    y,
-    width: w,
-    height: h,
+  page.drawCircle({
+    x: cx, y: cy, size: r,
     borderColor: color,
     borderWidth: 1.2,
   });
 
-  // Backrest line above the seat
+  // Hour hand (pointing up)
   page.drawLine({
-    start: { x: cx - w * 0.35, y: y + h + size * 0.1 },
-    end: { x: cx + w * 0.35, y: y + h + size * 0.1 },
-    thickness: 2,
+    start: { x: cx, y: cy },
+    end: { x: cx, y: cy + r * 0.55 },
+    thickness: 1,
     color,
   });
 
-  // Two vertical supports
+  // Minute hand (pointing right)
   page.drawLine({
-    start: { x: cx - w * 0.35, y: y + h + size * 0.1 },
-    end: { x: cx - w * 0.35, y: y + h },
-    thickness: 1.2,
+    start: { x: cx, y: cy },
+    end: { x: cx + r * 0.55, y: cy },
+    thickness: 1,
     color,
   });
-  page.drawLine({
-    start: { x: cx + w * 0.35, y: y + h + size * 0.1 },
-    end: { x: cx + w * 0.35, y: y + h },
-    thickness: 1.2,
+}
+
+/** Ticket icon — a rounded rectangle with two side notches. */
+function drawTicketIcon(
+  page: PDFPage,
+  cx: number,
+  cy: number,
+  size: number,
+  color: ReturnType<typeof rgb>
+): void {
+  const w = size * 1.15;
+  const h = size * 0.72;
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+
+  page.drawRectangle({
+    x, y, width: w, height: h,
     color,
   });
+
+  // Two small cut-outs (notches) on left and right — drawn as page-bg circles
+  page.drawCircle({
+    x: cx - w / 2,
+    y: cy,
+    size: h * 0.28,
+    color: C.cardBg,
+  });
+  page.drawCircle({
+    x: cx + w / 2,
+    y: cy,
+    size: h * 0.28,
+    color: C.cardBg,
+  });
+}
+
+/** A thin vertical divider between columns. */
+function drawVDivider(
+  page: PDFPage,
+  x: number,
+  cy: number,
+  height: number
+): void {
+  page.drawLine({
+    start: { x, y: cy - height / 2 },
+    end: { x, y: cy + height / 2 },
+    thickness: 0.6,
+    color: C.divider,
+    opacity: 0.8,
+  });
+}
+
+// ======================================================
+// Date/time splitter
+// ======================================================
+
+function splitEventDateTime(order: PdfOrder): { date: string; time: string } {
+  if (order.eventDate || order.eventStartTime) {
+    return {
+      date: order.eventDate ?? "",
+      time: order.eventStartTime ?? "",
+    };
+  }
+
+  const raw = (order.eventTime || "").trim();
+
+  // Try to extract a time at the end:
+  // "May 14, 2027 19:30"  → date="May 14, 2027", time="19:30"
+  // "15 May 2027, 19:00"  → date="15 May 2027", time="19:00"
+  const match = raw.match(
+    /^(.*?)[,\s]+(\d{1,2}:\d{2}(?::\d{2})?(?:\s*[APap]\.?[Mm]\.?)?)\s*$/
+  );
+  if (match) {
+    return {
+      date: match[1].trim().replace(/[,\s]+$/, ""),
+      time: match[2].trim(),
+    };
+  }
+
+  return { date: raw, time: "" };
 }
 
 // ======================================================
@@ -739,12 +759,10 @@ function wrapToMaxLines(
   for (let i = 0; i < words.length; i++) {
     const word = words[i];
     const candidate = current ? `${current} ${word}` : word;
-
     if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
       current = candidate;
       continue;
     }
-
     if (current) {
       lines.push(current);
       current = word;
@@ -759,7 +777,6 @@ function wrapToMaxLines(
       if (lines.length >= maxLines) return lines;
     }
   }
-
   if (current) {
     if (lines.length >= maxLines) {
       lines[maxLines - 1] = truncateToWidth(
@@ -772,7 +789,6 @@ function wrapToMaxLines(
       lines.push(current);
     }
   }
-
   return lines.slice(0, maxLines);
 }
 
